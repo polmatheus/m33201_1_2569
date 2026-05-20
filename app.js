@@ -56,7 +56,7 @@ async function loadStudents() {
             tbody.appendChild(tr);
         });
 
-    } catch (error) {
+  } catch (error) {
         console.error('Error:', error);
         // ให้มันแสดง Error จริงๆ ออกมาบนหน้าจอเลย จะได้รู้ว่าเกิดอะไรขึ้น
         tbody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-red-500 font-semibold">Error: ${error.message || 'ไม่สามารถเชื่อมต่อได้'}</td></tr>`;
