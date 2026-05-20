@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบเช็คชื่อและบันทึกคะแนน ม.3 (2569)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans p-4 md:p-8">
+    
+    <div class="max-w-5xl mx-auto bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <div class="mb-6 border-b pb-4">
+            <h1 class="text-2xl font-bold text-blue-600">บันทึกการส่งงานและคะแนน</h1>
+            <p class="text-sm text-gray-500 mt-1">รหัสวิชา ม33201 ภาคเรียนที่ 1/2569</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">ห้องเรียน</label>
+                <select id="roomSelect" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    <option value="" disabled selected>เลือกห้อง...</option>
+                    <option value="1">ห้อง 1</option>
+                    <option value="2">ห้อง 2</option>
+                    <option value="3">ห้อง 3</option>
+                    <option value="4">ห้อง 4</option>
+                    <option value="8">ห้อง 8</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">คาบเรียน</label>
+                <select id="periodSelect" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    <option value="" disabled selected>เลือกคาบ...</option>
+                    <option value="1">คาบ 1</option>
+                    <option value="2">คาb 2</option>
+                    <option value="3">คาบ 3</option>
+                    <option value="4">คาบ 4</option>
+                    <option value="5">คาบ 5</option>
+                    <option value="6">คาบ 6</option>
+                    <option value="7">คาบ 7</option>
+                    <option value="8">คาบ 8</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">ประเภทงาน</label>
+                <select id="typeSelect" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    <option value="Homework">การบ้าน (Homework)</option>
+                    <option value="Quiz">ควิซ (Quiz)</option>
+                </select>
+            </div>
+        </div>
+
+        <button onclick="loadStudents()" class="w-full md:w-auto bg-blue-100 text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-200 transition mb-8">
+            โหลดรายชื่อนักเรียน
+        </button>
+
+        <div class="overflow-x-auto" id="tableContainer" style="display: none;">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-100 text-gray-700">
+                        <th class="p-3 border-b font-medium w-16 text-center">เลขที่</th>
+                        <th class="p-3 border-b font-medium w-32 text-center">รหัสนักเรียน</th>
+                        <th class="p-3 border-b font-medium">ชื่อ-นามสกุล</th>
+                        <th class="p-3 border-b font-medium w-28 text-center">
+                            ส่งงาน<br>
+                            <input type="checkbox" id="checkAllBtn" onchange="toggleCheckAll()" class="mt-1 w-4 h-4 text-blue-600 rounded">
+                        </th>
+                        <th class="p-3 border-b font-medium w-32 text-center">คะแนน</th>
+                    </tr>
+                </thead>
+                <tbody id="studentTableBody">
+                    </tbody>
+            </table>
+
+            <div class="mt-6 flex justify-end items-center gap-4">
+                <p id="statusMsg" class="text-sm font-medium"></p>
+                <button onclick="saveData()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition shadow-sm">
+                    บันทึกข้อมูลลงฐานระบบ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
