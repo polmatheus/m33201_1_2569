@@ -1,8 +1,8 @@
 // ==========================================
 // 1. ใส่ URL และ KEY ของคุณตรงนี้ได้เลย (ไม่ต้องใช้ config.js แล้ว)
 // ==========================================
-const SUPABASE_URL = 'https://YOUR-URL.supabase.co';
-const SUPABASE_ANON_KEY = 'YOUR-KEY';
+const SUPABASE_URL = 'https://pqkaqsxmbewilzruogdw.supabase.co'; 
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxa2Fxc3htYmV3aWx6cnVvZ2R3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0ODgzMTksImV4cCI6MjA4NDA2NDMxOX0.TFyfNcFXcUUF29Iexmkjf6EaNIXAv8KuOFY_ydAY_z8';
 
 // ใช้ var เพื่อป้องกันปัญหาตัวแปรโหลดไม่ทัน (Initialization Error)
 var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
