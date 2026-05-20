@@ -1,13 +1,15 @@
 // ==========================================
-// 1. ตั้งค่าการเชื่อมต่อ Supabase (ต้องอยู่บรรทัดบนสุดเสมอ)
+// 1. ใส่ URL และ KEY ของคุณตรงนี้ได้เลย (ไม่ต้องใช้ config.js แล้ว)
 // ==========================================
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_URL = 'https://YOUR-URL.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR-KEY';
 
-// ตัวแปรเก็บรายชื่อนักเรียน
-let currentStudents = [];
+// ใช้ var เพื่อป้องกันปัญหาตัวแปรโหลดไม่ทัน (Initialization Error)
+var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+var currentStudents = [];
 
 // ==========================================
-// 2. ฟังก์ชันโหลดรายชื่อนักเรียน
+// 2. ฟังก์ชันโหลดรายชื่อ
 // ==========================================
 async function loadStudents() {
     const room = document.getElementById('roomSelect').value;
@@ -62,7 +64,6 @@ async function loadStudents() {
 
     } catch (error) {
         console.error('Error:', error);
-        // แสดง Error ภาษาไทยให้เข้าใจง่ายขึ้น
         tbody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-red-500 font-semibold">Error: ${error.message || 'เชื่อมต่อฐานข้อมูลไม่สำเร็จ'}</td></tr>`;
     }
 }
@@ -119,7 +120,6 @@ async function saveData() {
         statusMsg.className = 'text-sm font-bold text-green-600 truncate flex-1';
         
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        
         document.querySelectorAll('.student-score').forEach(input => input.value = '');
 
     } catch (error) {
