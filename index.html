@@ -2,84 +2,95 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบเช็คชื่อและบันทึกคะแนน ม.6 (2569)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ลงคะแนน ม.3 (2569)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* ลบลูกศรขึ้นลงในช่อง input number บน Safari/iOS */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+    </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans p-4 md:p-8">
+<body class="bg-gray-100 text-gray-800 font-sans pb-28 md:pb-8">
     
-    <div class="max-w-5xl mx-auto bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <div class="mb-6 border-b pb-4">
-            <h1 class="text-2xl font-bold text-blue-600">บันทึกการส่งงานและคะแนน</h1>
-            <p class="text-sm text-gray-500 mt-1">รหัสวิชา ค33201 ภาคเรียนที่ 1/2569</p>
+    <div class="max-w-4xl mx-auto md:mt-6 bg-white md:rounded-2xl md:shadow-sm overflow-hidden border-b border-gray-200 md:border-none">
+        <div class="bg-blue-600 text-white p-6 text-center md:text-left">
+            <h1 class="text-2xl font-bold tracking-wide">บันทึกคะแนนนักเรียน</h1>
+            <p class="text-blue-100 mt-1 text-sm">ม33201 ภาคเรียนที่ 1/2569</p>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">ห้องเรียน</label>
-                <select id="roomSelect" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-                    <option value="" disabled selected>เลือกห้อง...</option>
-                    <option value="1">ห้อง 1</option>
-                    <option value="2">ห้อง 2</option>
-                    <option value="3">ห้อง 3</option>
-                    <option value="4">ห้อง 4</option>
-                    <option value="8">ห้อง 8</option>
-                </select>
-            </div>
-            
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">คาบเรียน</label>
-                <select id="periodSelect" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-                    <option value="" disabled selected>เลือกคาบ...</option>
-                    <option value="1">คาบ 1</option>
-                    <option value="2">คาb 2</option>
-                    <option value="3">คาบ 3</option>
-                    <option value="4">คาบ 4</option>
-                    <option value="5">คาบ 5</option>
-                    <option value="6">คาบ 6</option>
-                    <option value="7">คาบ 7</option>
-                    <option value="8">คาบ 8</option>
-                </select>
+        <div class="p-4 md:p-6">
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                <div class="col-span-1">
+                    <label class="block text-sm font-semibold text-gray-600 mb-2">ห้องเรียน</label>
+                    <select id="roomSelect" class="w-full bg-gray-50 border border-gray-300 rounded-xl h-12 px-3 text-base focus:ring-2 focus:ring-blue-500 outline-none transition appearance-none">
+                        <option value="" disabled selected>เลือก...</option>
+                        <option value="1">ห้อง 1</option>
+                        <option value="2">ห้อง 2</option>
+                        <option value="3">ห้อง 3</option>
+                        <option value="4">ห้อง 4</option>
+                        <option value="8">ห้อง 8</option>
+                    </select>
+                </div>
+                
+                <div class="col-span-1">
+                    <label class="block text-sm font-semibold text-gray-600 mb-2">คาบเรียน</label>
+                    <select id="periodSelect" class="w-full bg-gray-50 border border-gray-300 rounded-xl h-12 px-3 text-base focus:ring-2 focus:ring-blue-500 outline-none transition appearance-none">
+                        <option value="" disabled selected>เลือก...</option>
+                        <option value="1">คาบ 1</option>
+                        <option value="2">คาบ 2</option>
+                        <option value="3">คาบ 3</option>
+                        <option value="4">คาบ 4</option>
+                        <option value="5">คาบ 5</option>
+                        <option value="6">คาบ 6</option>
+                        <option value="7">คาบ 7</option>
+                        <option value="8">คาบ 8</option>
+                    </select>
+                </div>
+
+                <div class="col-span-2 md:col-span-1">
+                    <label class="block text-sm font-semibold text-gray-600 mb-2">ประเภทคะแนน</label>
+                    <select id="typeSelect" class="w-full bg-gray-50 border border-gray-300 rounded-xl h-12 px-3 text-base focus:ring-2 focus:ring-blue-500 outline-none transition appearance-none">
+                        <option value="Homework">การบ้าน (Homework)</option>
+                        <option value="Quiz">ควิซ (Quiz)</option>
+                        <option value="Bonus">โบนัส (Bonus)</option>
+                    </select>
+                </div>
             </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">ประเภทงาน</label>
-                <select id="typeSelect" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none">
-                    <option value="Homework">การบ้าน (Homework)</option>
-                    <option value="Quiz">ควิซ (Quiz)</option>
-                </select>
+            <button onclick="loadStudents()" class="w-full bg-blue-50 text-blue-700 h-12 rounded-xl font-bold hover:bg-blue-100 active:bg-blue-200 transition text-lg mb-6 border border-blue-200">
+                โหลดรายชื่อนักเรียน
+            </button>
+
+            <div id="tableContainer" style="display: none;">
+                <div class="overflow-hidden rounded-xl border border-gray-200">
+                    <table class="w-full text-left bg-white">
+                        <thead class="bg-gray-100 text-gray-600 border-b border-gray-200 text-sm">
+                            <tr>
+                                <th class="p-3 font-semibold text-center w-12">ที่</th>
+                                <th class="p-3 font-semibold w-24 hidden md:table-cell">รหัส</th>
+                                <th class="p-3 font-semibold">ชื่อ - นามสกุล</th>
+                                <th class="p-3 font-semibold text-center w-28 md:w-32">คะแนน</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentTableBody" class="divide-y divide-gray-100">
+                            </tbody>
+                    </table>
+                </div>
             </div>
         </div>
+    </div>
 
-        <button onclick="loadStudents()" class="w-full md:w-auto bg-blue-100 text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-200 transition mb-8">
-            โหลดรายชื่อนักเรียน
-        </button>
-
-        <div class="overflow-x-auto" id="tableContainer" style="display: none;">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-gray-100 text-gray-700">
-                        <th class="p-3 border-b font-medium w-16 text-center">เลขที่</th>
-                        <th class="p-3 border-b font-medium w-32 text-center">รหัสนักเรียน</th>
-                        <th class="p-3 border-b font-medium">ชื่อ-นามสกุล</th>
-                        <th class="p-3 border-b font-medium w-28 text-center">
-                            ส่งงาน<br>
-                            <input type="checkbox" id="checkAllBtn" onchange="toggleCheckAll()" class="mt-1 w-4 h-4 text-blue-600 rounded">
-                        </th>
-                        <th class="p-3 border-b font-medium w-32 text-center">คะแนน</th>
-                    </tr>
-                </thead>
-                <tbody id="studentTableBody">
-                    </tbody>
-            </table>
-
-            <div class="mt-6 flex justify-end items-center gap-4">
-                <p id="statusMsg" class="text-sm font-medium"></p>
-                <button onclick="saveData()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition shadow-sm">
-                    บันทึกข้อมูลลงฐานระบบ
-                </button>
-            </div>
+    <div id="action-bar" class="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] p-4 md:p-6 z-50 transform translate-y-full transition-transform duration-300 flex justify-between items-center">
+        <div class="max-w-4xl mx-auto w-full flex justify-between items-center gap-4">
+            <p id="statusMsg" class="text-sm font-semibold truncate flex-1"></p>
+            <button onclick="saveData()" class="bg-blue-600 text-white h-12 px-8 rounded-xl font-bold shadow-md hover:bg-blue-700 active:bg-blue-800 transition text-lg w-auto shrink-0">
+                บันทึกคะแนน
+            </button>
         </div>
     </div>
 
