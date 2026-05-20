@@ -1,8 +1,14 @@
-const { createClient } = supabase;
-const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ==========================================
+// 1. ตั้งค่าการเชื่อมต่อ Supabase (ต้องอยู่บรรทัดบนสุดเสมอ)
+// ==========================================
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// ตัวแปรเก็บรายชื่อนักเรียน
 let currentStudents = [];
 
+// ==========================================
+// 2. ฟังก์ชันโหลดรายชื่อนักเรียน
+// ==========================================
 async function loadStudents() {
     const room = document.getElementById('roomSelect').value;
     const period = document.getElementById('periodSelect').value;
@@ -16,7 +22,6 @@ async function loadStudents() {
     tbody.innerHTML = '<tr><td colspan="4" class="text-center p-6 text-gray-500 animate-pulse">กำลังโหลดข้อมูล...</td></tr>';
     
     document.getElementById('tableContainer').style.display = 'block';
-    // แสดงแถบบันทึกด้านล่าง
     document.getElementById('action-bar').classList.remove('translate-y-full');
     
     const statusMsg = document.getElementById('statusMsg');
@@ -37,11 +42,10 @@ async function loadStudents() {
 
         if (currentStudents.length === 0) {
             tbody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-red-500 font-semibold">ไม่พบรายชื่อนักเรียนห้อง ${room}</td></tr>`;
-            document.getElementById('action-bar').classList.add('translate-y-full'); // ซ่อนแถบถ้าไม่มีนักเรียน
+            document.getElementById('action-bar').classList.add('translate-y-full');
             return;
         }
 
-        // วาดตารางแบบใหม่ เน้นช่องกรอกคะแนนขนาดใหญ่
         currentStudents.forEach((student, index) => {
             const tr = document.createElement('tr');
             tr.className = "hover:bg-blue-50 transition-colors";
@@ -56,13 +60,16 @@ async function loadStudents() {
             tbody.appendChild(tr);
         });
 
-  } catch (error) {
+    } catch (error) {
         console.error('Error:', error);
-        // ให้มันแสดง Error จริงๆ ออกมาบนหน้าจอเลย จะได้รู้ว่าเกิดอะไรขึ้น
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-red-500 font-semibold">Error: ${error.message || 'ไม่สามารถเชื่อมต่อได้'}</td></tr>`;
+        // แสดง Error ภาษาไทยให้เข้าใจง่ายขึ้น
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-red-500 font-semibold">Error: ${error.message || 'เชื่อมต่อฐานข้อมูลไม่สำเร็จ'}</td></tr>`;
     }
 }
 
+// ==========================================
+// 3. ฟังก์ชันบันทึกข้อมูล
+// ==========================================
 async function saveData() {
     const room = document.getElementById('roomSelect').value;
     const period = document.getElementById('periodSelect').value;
@@ -83,7 +90,6 @@ async function saveData() {
         const index = scoreInput.getAttribute('data-index');
         const student = currentStudents[index];
 
-        // บันทึกข้อมูล *เฉพาะ* คนที่ถูกกรอกคะแนนลงไปเท่านั้น (ช่องว่างข้ามไป)
         if (scoreValue !== "") {
             recordsToInsert.push({
                 room_number: room,
@@ -112,10 +118,8 @@ async function saveData() {
         statusMsg.textContent = `บันทึกสำเร็จ (${recordsToInsert.length} คน)!`;
         statusMsg.className = 'text-sm font-bold text-green-600 truncate flex-1';
         
-        // เลื่อนหน้าจอกลับไปด้านบนสุดเพื่อพร้อมโหลดห้องต่อไป
         window.scrollTo({ top: 0, behavior: 'smooth' });
         
-        // ล้างช่องคะแนนเพื่อป้องกันการกดเซฟซ้ำ
         document.querySelectorAll('.student-score').forEach(input => input.value = '');
 
     } catch (error) {
