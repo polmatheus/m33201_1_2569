@@ -3,7 +3,6 @@ const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentStudents = [];
 
-// ฟังก์ชันโหลดรายชื่อ
 async function loadStudents() {
     const room = document.getElementById('roomSelect').value;
     const period = document.getElementById('periodSelect').value;
@@ -14,12 +13,17 @@ async function loadStudents() {
     }
 
     const tbody = document.getElementById('studentTableBody');
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-gray-500">กำลังโหลดข้อมูล...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center p-6 text-gray-500 animate-pulse">กำลังโหลดข้อมูล...</td></tr>';
+    
     document.getElementById('tableContainer').style.display = 'block';
-    document.getElementById('statusMsg').textContent = '';
+    // แสดงแถบบันทึกด้านล่าง
+    document.getElementById('action-bar').classList.remove('translate-y-full');
+    
+    const statusMsg = document.getElementById('statusMsg');
+    statusMsg.textContent = 'พร้อมกรอกคะแนน';
+    statusMsg.className = 'text-sm font-semibold text-gray-500 truncate flex-1';
 
     try {
-        // อัปเดต: เรียงลำดับด้วย room_num แทน no
         const { data, error } = await supabaseClient
             .from('students_m33201_1_2569')
             .select('*')
@@ -32,84 +36,68 @@ async function loadStudents() {
         tbody.innerHTML = '';
 
         if (currentStudents.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center p-4 text-red-500">ไม่พบรายชื่อนักเรียนห้อง ${room} ในระบบ</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-red-500 font-semibold">ไม่พบรายชื่อนักเรียนห้อง ${room}</td></tr>`;
+            document.getElementById('action-bar').classList.add('translate-y-full'); // ซ่อนแถบถ้าไม่มีนักเรียน
             return;
         }
 
-        // สร้างตาราง
+        // วาดตารางแบบใหม่ เน้นช่องกรอกคะแนนขนาดใหญ่
         currentStudents.forEach((student, index) => {
             const tr = document.createElement('tr');
-            tr.className = "border-b hover:bg-gray-50 transition";
+            tr.className = "hover:bg-blue-50 transition-colors";
             tr.innerHTML = `
-                <td class="p-3 text-center text-gray-600">${student.room_num || '-'}</td>
-                <td class="p-3 text-center text-blue-600 font-medium">${student.std_id}</td>
-                <td class="p-3 text-gray-800">${student.name}</td>
-                <td class="p-3 text-center">
-                    <input type="checkbox" class="student-checkbox w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500" data-index="${index}">
-                </td>
-                <td class="p-3 text-center">
-                    <input type="number" min="0" class="student-score w-full border border-gray-300 rounded p-1 text-center outline-none focus:border-blue-500" placeholder="0" data-index="${index}">
+                <td class="p-3 text-center text-gray-500 font-medium">${student.room_num || '-'}</td>
+                <td class="p-3 text-gray-400 text-sm hidden md:table-cell">${student.std_id}</td>
+                <td class="p-3 text-gray-800 font-medium">${student.name}</td>
+                <td class="p-2 align-middle text-center">
+                    <input type="number" inputmode="decimal" class="student-score w-full bg-gray-50 border border-gray-300 rounded-lg h-12 text-center text-lg font-bold text-blue-600 outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-inner" placeholder="-" data-index="${index}">
                 </td>
             `;
             tbody.appendChild(tr);
         });
 
-        document.getElementById('checkAllBtn').checked = false;
-
     } catch (error) {
         console.error('Error:', error);
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-red-500">เกิดข้อผิดพลาดในการดึงข้อมูล</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center p-6 text-red-500 font-semibold">เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล</td></tr>';
     }
 }
 
-// ฟังก์ชันเลือกทั้งหมด
-function toggleCheckAll() {
-    const isChecked = document.getElementById('checkAllBtn').checked;
-    const checkboxes = document.querySelectorAll('.student-checkbox');
-    checkboxes.forEach(cb => cb.checked = isChecked);
-}
-
-// ฟังก์ชันบันทึกข้อมูล
 async function saveData() {
     const room = document.getElementById('roomSelect').value;
     const period = document.getElementById('periodSelect').value;
     const type = document.getElementById('typeSelect').value;
     const statusMsg = document.getElementById('statusMsg');
 
-    statusMsg.textContent = 'กำลังบันทึกข้อมูล...';
-    statusMsg.className = 'text-sm font-medium text-blue-600';
+    statusMsg.textContent = 'กำลังบันทึก...';
+    statusMsg.className = 'text-sm font-bold text-blue-600 truncate flex-1';
 
     const rows = document.querySelectorAll('#studentTableBody tr');
     const recordsToInsert = [];
 
     rows.forEach((row) => {
-        const checkbox = row.querySelector('.student-checkbox');
         const scoreInput = row.querySelector('.student-score');
-        
-        if (!checkbox || !scoreInput) return;
+        if (!scoreInput) return;
 
-        const index = checkbox.getAttribute('data-index');
+        const scoreValue = scoreInput.value.trim();
+        const index = scoreInput.getAttribute('data-index');
         const student = currentStudents[index];
-        const isSubmitted = checkbox.checked;
-        const scoreValue = scoreInput.value;
-        const score = scoreValue ? parseFloat(scoreValue) : 0;
 
-        if (isSubmitted || score > 0) {
+        // บันทึกข้อมูล *เฉพาะ* คนที่ถูกกรอกคะแนนลงไปเท่านั้น (ช่องว่างข้ามไป)
+        if (scoreValue !== "") {
             recordsToInsert.push({
                 room_number: room,
                 period_number: parseInt(period),
                 task_type: type,
                 std_id: student.std_id,
                 student_name: student.name,
-                is_submitted: isSubmitted,
-                score: score
+                score: parseFloat(scoreValue)
             });
         }
     });
 
     if (recordsToInsert.length === 0) {
-        statusMsg.textContent = 'ไม่มีข้อมูลที่ต้องบันทึก';
-        statusMsg.className = 'text-sm font-medium text-red-500';
+        statusMsg.textContent = 'กรุณากรอกคะแนนอย่างน้อย 1 คน';
+        statusMsg.className = 'text-sm font-bold text-red-500 truncate flex-1';
         return;
     }
 
@@ -120,12 +108,18 @@ async function saveData() {
 
         if (error) throw error;
 
-        statusMsg.textContent = 'บันทึกข้อมูลสำเร็จ!';
-        statusMsg.className = 'text-sm font-medium text-green-600';
+        statusMsg.textContent = `บันทึกสำเร็จ (${recordsToInsert.length} คน)!`;
+        statusMsg.className = 'text-sm font-bold text-green-600 truncate flex-1';
         
+        // เลื่อนหน้าจอกลับไปด้านบนสุดเพื่อพร้อมโหลดห้องต่อไป
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        // ล้างช่องคะแนนเพื่อป้องกันการกดเซฟซ้ำ
+        document.querySelectorAll('.student-score').forEach(input => input.value = '');
+
     } catch (error) {
         console.error('Error:', error);
-        statusMsg.textContent = 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
-        statusMsg.className = 'text-sm font-medium text-red-500';
+        statusMsg.textContent = 'บันทึกไม่สำเร็จ ลองอีกครั้ง';
+        statusMsg.className = 'text-sm font-bold text-red-500 truncate flex-1';
     }
 }
