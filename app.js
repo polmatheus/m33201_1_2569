@@ -58,7 +58,8 @@ async function loadStudents() {
 
     } catch (error) {
         console.error('Error:', error);
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center p-6 text-red-500 font-semibold">เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล</td></tr>';
+        // ให้มันแสดง Error จริงๆ ออกมาบนหน้าจอเลย จะได้รู้ว่าเกิดอะไรขึ้น
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-red-500 font-semibold">Error: ${error.message || 'ไม่สามารถเชื่อมต่อได้'}</td></tr>`;
     }
 }
 
