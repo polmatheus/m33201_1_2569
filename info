@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infographic - เงื่อนไขการลา</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+        .gradient-text {
+            background: linear-gradient(to right, #1e3a8a, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="bg-[#f4f6f9] flex justify-center items-center min-h-screen p-4 md:p-8">
+
+    <div class="bg-white max-w-4xl w-full rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100">
+        
+        <div class="bg-gradient-to-r from-slate-900 to-blue-900 text-white p-10 text-center relative overflow-hidden">
+            <div class="relative z-10">
+                <div class="text-5xl mb-4">📢</div>
+                <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight mb-3">ระเบียบการขออนุญาตลา</h1>
+                <p class="text-blue-200 text-lg md:text-xl font-medium tracking-wide">รายวิชา ค33201 เสริมทักษะคณิตศาสตร์ 5</p>
+            </div>
+            <div class="absolute top-0 left-0 -ml-16 -mt-16 w-64 h-64 rounded-full bg-blue-500 opacity-20 blur-3xl"></div>
+            <div class="absolute bottom-0 right-0 -mr-16 -mb-16 w-64 h-64 rounded-full bg-white opacity-10 blur-3xl"></div>
+        </div>
+
+        <div class="p-8 md:p-12">
+            <div class="text-center mb-10">
+                <h2 class="text-xl md:text-2xl font-bold text-slate-700">นักเรียนต้องยื่นใบลาผ่านระบบออนไลน์ตามเงื่อนไขต่อไปนี้</h2>
+                <p class="text-slate-500 mt-2 text-sm md:text-base">ระบบจะทำการตรวจสอบเวลาอัตโนมัติ หากไม่ตรงตามเงื่อนไขจะไม่สามารถส่งใบลาได้</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                <div class="bg-rose-50 rounded-3xl p-8 border-2 border-rose-100 relative hover:-translate-y-2 transition-transform duration-300">
+                    <div class="w-20 h-20 bg-white rounded-2xl shadow-sm flex items-center justify-center text-5xl mb-6 mx-auto">🤒</div>
+                    <h3 class="text-2xl font-bold text-rose-600 text-center mb-4">ลาป่วย</h3>
+                    <ul class="space-y-3 text-slate-700 text-center md:text-left">
+                        <li class="flex items-start justify-center md:justify-start gap-2">
+                            <span class="text-rose-500 mt-0.5">⏰</span>
+                            <span>ต้องส่งก่อนเวลา <strong class="text-rose-600 font-bold">07:20 น.</strong> ของวันที่ต้องการลา</span>
+                        </li>
+                        <li class="flex items-start justify-center md:justify-start gap-2">
+                            <span class="text-rose-500 mt-0.5">❌</span>
+                            <span>ไม่อนุญาตให้ส่งใบลาป่วย <strong>ย้อนหลังข้ามวัน</strong> เด็ดขาด</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="bg-amber-50 rounded-3xl p-8 border-2 border-amber-100 relative hover:-translate-y-2 transition-transform duration-300">
+                    <div class="w-20 h-20 bg-white rounded-2xl shadow-sm flex items-center justify-center text-5xl mb-6 mx-auto">📝</div>
+                    <h3 class="text-2xl font-bold text-amber-600 text-center mb-4">ลากิจ</h3>
+                    <ul class="space-y-3 text-slate-700 text-center md:text-left">
+                        <li class="flex items-start justify-center md:justify-start gap-2">
+                            <span class="text-amber-500 mt-0.5">⏳</span>
+                            <span>ต้องแจ้งล่วงหน้าอย่างน้อย <strong class="text-amber-600 font-bold">36 ชั่วโมง</strong></span>
+                        </li>
+                        <li class="flex items-start justify-center md:justify-start gap-2">
+                            <span class="text-amber-500 mt-0.5">🛑</span>
+                            <span>ระบบ <strong>จะไม่นับรวม</strong> เวลาในช่วงวันหยุด เสาร์ - อาทิตย์</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="bg-orange-50 rounded-3xl p-8 border-2 border-orange-100 relative hover:-translate-y-2 transition-transform duration-300">
+                    <div class="w-20 h-20 bg-white rounded-2xl shadow-sm flex items-center justify-center text-5xl mb-6 mx-auto">🚨</div>
+                    <h3 class="text-2xl font-bold text-orange-600 text-center mb-4">ลาฉุกเฉิน</h3>
+                    <ul class="space-y-3 text-slate-700 text-center md:text-left">
+                        <li class="flex items-start justify-center md:justify-start gap-2">
+                            <span class="text-orange-500 mt-0.5">⚠️</span>
+                            <span>ใช้เฉพาะกรณีเกิดเหตุสุดวิสัย หรือเร่งด่วนจริงๆ เท่านั้น</span>
+                        </li>
+                        <li class="flex items-start justify-center md:justify-start gap-2">
+                            <span class="text-orange-500 mt-0.5">⏪</span>
+                            <span>อนุโลมให้ส่งใบลาย้อนหลังได้ <strong class="text-orange-600 font-bold">ไม่เกิน 1 วัน</strong> เท่านั้น</span>
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="bg-slate-50 border-t border-slate-100 p-6 md:p-8 text-center flex flex-col items-center justify-center">
+            <p class="text-slate-500 font-semibold mb-3">📍 นักเรียนสามารถส่งใบลาได้ที่ลิงก์ระบบขออนุญาตลาดังต่อไปนี้</p>
+            <a href="https://polmatheus.github.io/m33201_1_2569/leave.html" target="_blank" class="inline-block text-blue-600 font-bold text-lg md:text-xl hover:text-blue-800 transition-colors underline decoration-2 underline-offset-4 bg-blue-50 px-6 py-2 rounded-xl border border-blue-100">
+                https://polmatheus.github.io/m33201_1_2569/leave.html
+            </a>
+        </div>
+
+    </div>
+
+</body>
+</html>
