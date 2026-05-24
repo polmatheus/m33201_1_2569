@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ระบบขออนุญาตลา</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+    </style>
+</head>
+<body class="bg-[#f4f6f9] text-slate-800 pb-32 md:pb-24 pt-4 md:pt-8 antialiased">
+    
+    <div class="max-w-2xl mx-4 md:mx-auto bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100">
+        <div class="bg-gradient-to-r from-slate-900 to-blue-900 text-white p-8 text-center relative overflow-hidden">
+            <div class="relative z-10 flex flex-col items-center">
+                <h1 class="text-3xl font-bold tracking-tight">แบบฟอร์มขออนุญาตลา</h1>
+                <p class="text-blue-200 mt-1 text-sm font-medium opacity-90 tracking-wide">กรุณาส่งใบลาตามระเบียบของโรงเรียน</p>
+            </div>
+            <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white opacity-5 blur-3xl"></div>
+        </div>
+        
+        <div class="p-6 md:p-8">
+            <div class="space-y-5">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2 md:col-span-1">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">รหัสนักเรียน</label>
+                        <input type="text" id="stdId" class="w-full bg-slate-50 border border-slate-200 rounded-2xl h-14 px-4 focus:ring-2 focus:ring-slate-900 outline-none transition-all">
+                    </div>
+                    <div class="col-span-2 md:col-span-1">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">ห้องเรียน</label>
+                        <select id="roomNum" class="w-full bg-slate-50 border border-slate-200 rounded-2xl h-14 px-4 focus:ring-2 focus:ring-slate-900 outline-none transition-all appearance-none cursor-pointer">
+                            <option value="" disabled selected>เลือกห้อง...</option>
+                            <option value="1">ห้อง 1</option><option value="2">ห้อง 2</option>
+                            <option value="3">ห้อง 3</option><option value="4">ห้อง 4</option><option value="8">ห้อง 8</option>
+                        </select>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">ชื่อ - นามสกุล</label>
+                        <input type="text" id="stdName" class="w-full bg-slate-50 border border-slate-200 rounded-2xl h-14 px-4 focus:ring-2 focus:ring-slate-900 outline-none transition-all">
+                    </div>
+                </div>
+
+                <hr class="border-slate-100 my-4">
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2 md:col-span-1">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">ประเภทการลา</label>
+                        <select id="leaveType" class="w-full bg-slate-50 border border-slate-200 rounded-2xl h-14 px-4 focus:ring-2 focus:ring-slate-900 outline-none transition-all appearance-none cursor-pointer">
+                            <option value="" disabled selected>เลือกประเภท...</option>
+                            <option value="ลาป่วย">🤒 ลาป่วย (แจ้งก่อน 07:20 น.)</option>
+                            <option value="ลากิจ">📝 ลากิจ (ล่วงหน้า 36 ชม.)</option>
+                            <option value="ลาฉุกเฉิน">🚨 ลาฉุกเฉิน</option>
+                        </select>
+                    </div>
+                    <div class="col-span-2 md:col-span-1">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">วันที่ต้องการลา</label>
+                        <input type="date" id="leaveDate" class="w-full bg-slate-50 border border-slate-200 rounded-2xl h-14 px-4 focus:ring-2 focus:ring-slate-900 outline-none transition-all">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">เหตุผลการลา</label>
+                        <textarea id="leaveReason" rows="3" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 focus:ring-2 focus:ring-slate-900 outline-none transition-all resize-none" placeholder="ระบุเหตุผลที่ชัดเจน..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div id="errorMsg" class="mt-4 text-rose-500 font-semibold text-sm text-center hidden"></div>
+        </div>
+    </div>
+
+    <div class="fixed bottom-0 left-0 w-full bg-white/80 backdrop-blur-xl border-t border-slate-200/60 p-4 md:p-6 z-50">
+        <div class="max-w-2xl mx-auto w-full">
+            <button onclick="submitLeave()" class="w-full bg-blue-600 text-white h-14 rounded-2xl font-semibold shadow-lg shadow-blue-600/30 hover:bg-blue-700 active:bg-blue-800 transition-all text-base">
+                ส่งใบขออนุญาตลา
+            </button>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="leave.js"></script>
+</body>
+</html>
