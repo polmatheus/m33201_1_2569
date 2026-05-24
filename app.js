@@ -74,6 +74,9 @@ function actionSelectAll() {
 }
 
 // โหลดรายชื่อ
+// ==========================================
+// ฟังก์ชันโหลดรายชื่อ และตรวจสอบการลาอัตโนมัติ
+// ==========================================
 async function loadStudents() {
     if (!initSupabase()) return;
 
@@ -89,18 +92,37 @@ async function loadStudents() {
     const tbody = document.getElementById('studentTableBody');
     const thead = document.getElementById('tableHeader');
     
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center p-8 text-slate-500 font-medium animate-pulse">กำลังโหลดข้อมูล...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center p-8 text-slate-500 font-medium animate-pulse">กำลังโหลดข้อมูลและตรวจสอบรายการลา...</td></tr>';
     document.getElementById('tableContainer').style.display = 'block';
     
     try {
-        const { data, error } = await supabaseClient
+        // 1. ดึงข้อมูลรายชื่อนักเรียน
+        const { data: studentsData, error: studentsError } = await supabaseClient
             .from('students_m33201_1_2569') 
             .select('*')
             .eq('room', room)
             .order('room_num', { ascending: true });
 
-        if (error) throw error;
-        currentStudents = data;
+        if (studentsError) throw studentsError;
+
+        // 2. ดึงข้อมูลการลาของห้องนี้ ในวันที่เลือก
+        const { data: leavesData, error: leavesError } = await supabaseClient
+            .from('m33201_1_2569_student_leaves')
+            .select('std_id, leave_type')
+            .eq('leave_date', date)
+            .eq('room_number', room);
+
+        if (leavesError) console.error("โหลดข้อมูลลาไม่สำเร็จ:", leavesError);
+
+        // สร้างตัวแปรเก็บรหัสนักเรียนที่ลา เพื่อให้ค้นหาง่ายขึ้น
+        const leaveMap = {};
+        if (leavesData) {
+            leavesData.forEach(leave => {
+                leaveMap[leave.std_id] = leave.leave_type; // เก็บประเภทการลาไว้ด้วย เช่น 'ลาป่วย', 'ลากิจ'
+            });
+        }
+
+        currentStudents = studentsData;
         tbody.innerHTML = '';
 
         if (currentStudents.length === 0) {
@@ -139,31 +161,40 @@ async function loadStudents() {
             tr.className = "hover:bg-slate-50 transition-colors duration-150 group";
             
             let actionHtml = '';
+
+            // ตรวจสอบว่านักเรียนคนนี้มีข้อมูลการลาหรือไม่
+            const hasLeave = leaveMap[student.std_id] ? true : false;
+            const leaveTypeInfo = leaveMap[student.std_id] || '';
+
             if (currentMode === 'attendance') {
                 actionHtml = `
-                    <td class="p-3 align-middle text-center flex justify-center gap-4 md:gap-6">
-                        <label class="cursor-pointer flex flex-col items-center group/radio">
-                            <input type="radio" name="status_${index}" value="มา" class="radio-present w-6 h-6 mb-1 cursor-pointer accent-emerald-500">
-                            <span class="text-xs font-medium text-slate-400 group-hover/radio:text-emerald-600 transition-colors">มา</span>
-                        </label>
-                        <label class="cursor-pointer flex flex-col items-center group/radio">
-                            <input type="radio" name="status_${index}" value="ขาด" class="w-6 h-6 mb-1 cursor-pointer accent-rose-500">
-                            <span class="text-xs font-medium text-slate-400 group-hover/radio:text-rose-600 transition-colors">ขาด</span>
-                        </label>
-                        <label class="cursor-pointer flex flex-col items-center group/radio">
-                            <input type="radio" name="status_${index}" value="ลา" class="w-6 h-6 mb-1 cursor-pointer accent-amber-500">
-                            <span class="text-xs font-medium text-slate-400 group-hover/radio:text-amber-600 transition-colors">ลา</span>
-                        </label>
-                        <label class="cursor-pointer flex flex-col items-center group/radio">
-                            <input type="radio" name="status_${index}" value="สาย" class="w-6 h-6 mb-1 cursor-pointer accent-orange-500">
-                            <span class="text-xs font-medium text-slate-400 group-hover/radio:text-orange-600 transition-colors">สาย</span>
-                        </label>
+                    <td class="p-3 align-middle text-center">
+                        <div class="flex justify-center gap-4 md:gap-6">
+                            <label class="cursor-pointer flex flex-col items-center group/radio">
+                                <input type="radio" name="status_${index}" value="มา" class="radio-present w-6 h-6 mb-1 cursor-pointer accent-emerald-500">
+                                <span class="text-xs font-medium text-slate-400 group-hover/radio:text-emerald-600 transition-colors">มา</span>
+                            </label>
+                            <label class="cursor-pointer flex flex-col items-center group/radio">
+                                <input type="radio" name="status_${index}" value="ขาด" class="w-6 h-6 mb-1 cursor-pointer accent-rose-500">
+                                <span class="text-xs font-medium text-slate-400 group-hover/radio:text-rose-600 transition-colors">ขาด</span>
+                            </label>
+                            <label class="cursor-pointer flex flex-col items-center group/radio relative">
+                                <input type="radio" name="status_${index}" value="ลา" class="w-6 h-6 mb-1 cursor-pointer accent-amber-500" ${hasLeave ? 'checked' : ''}>
+                                <span class="text-xs font-medium text-slate-400 group-hover/radio:text-amber-600 transition-colors">ลา</span>
+                            </label>
+                            <label class="cursor-pointer flex flex-col items-center group/radio">
+                                <input type="radio" name="status_${index}" value="สาย" class="w-6 h-6 mb-1 cursor-pointer accent-orange-500">
+                                <span class="text-xs font-medium text-slate-400 group-hover/radio:text-orange-600 transition-colors">สาย</span>
+                            </label>
+                        </div>
+                        ${hasLeave ? `<div class="text-[11px] font-semibold text-amber-600 mt-1.5 bg-amber-50 inline-block px-2 py-0.5 rounded-full border border-amber-200">มีรายการ: ${leaveTypeInfo}</div>` : ''}
                     </td>
                 `;
             } else {
                 actionHtml = `
                     <td class="p-3 align-middle text-center">
                         <input type="number" inputmode="decimal" class="student-score w-24 mx-auto bg-slate-50 border border-slate-200 rounded-xl h-12 text-center text-lg font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all shadow-inner" placeholder="-" data-index="${index}">
+                        ${hasLeave ? `<div class="text-[11px] font-semibold text-amber-600 mt-1">${leaveTypeInfo}</div>` : ''}
                     </td>
                 `;
             }
