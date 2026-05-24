@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>เมนูหลัก - ระบบจัดการชั้นเรียน</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+        /* เอฟเฟกต์การ์ดเมนู */
+        .menu-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+    </style>
+</head>
+<body class="bg-[#f4f6f9] text-slate-800 min-h-screen flex flex-col items-center pt-8 md:pt-16 pb-12 antialiased px-4">
+    
+    <div class="max-w-5xl w-full">
+        
+        <div class="text-center mb-12">
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-tr from-blue-600 to-slate-900 text-white text-4xl shadow-xl shadow-blue-900/20 mb-6">
+                🎓
+            </div>
+            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 mb-2">ระบบบริหารจัดการชั้นเรียน</h1>
+            <p class="text-slate-500 font-medium tracking-wide">รายวิชา ค33201 • ภาคเรียนที่ 1/2569</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+            
+            <a href="index.html" class="menu-card bg-white rounded-[2rem] p-8 border border-slate-100 transition-all duration-300 group block relative overflow-hidden text-center md:text-left cursor-pointer">
+                <div class="absolute -right-8 -top-8 w-32 h-32 bg-blue-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500"></div>
+                <div class="text-5xl mb-6 relative z-10">📝</div>
+                <h2 class="text-xl font-bold text-slate-800 mb-2 relative z-10">เช็คชื่อ & บันทึกคะแนน</h2>
+                <p class="text-sm text-slate-500 relative z-10 leading-relaxed">ระบบสำหรับคุณครู บันทึกการเข้าเรียนรายคาบ และให้คะแนนเก็บ (การบ้าน, ควิซ, โบนัส)</p>
+                <div class="mt-6 flex items-center justify-center md:justify-start text-blue-600 font-semibold text-sm group-hover:text-blue-700">
+                    เข้าสู่ระบบ 
+                    <span class="ml-2 group-hover:translate-x-1 transition-transform">→</span>
+                </div>
+            </a>
+
+            <a href="leave.html" class="menu-card bg-white rounded-[2rem] p-8 border border-slate-100 transition-all duration-300 group block relative overflow-hidden text-center md:text-left cursor-pointer">
+                <div class="absolute -right-8 -top-8 w-32 h-32 bg-amber-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500"></div>
+                <div class="text-5xl mb-6 relative z-10">🤒</div>
+                <h2 class="text-xl font-bold text-slate-800 mb-2 relative z-10">ระบบขออนุญาตลา</h2>
+                <p class="text-sm text-slate-500 relative z-10 leading-relaxed">แบบฟอร์มสำหรับนักเรียน ยื่นขออนุญาตลาป่วย ลากิจ และลาฉุกเฉิน (มีระบบเช็คเวลาอัตโนมัติ)</p>
+                <div class="mt-6 flex items-center justify-center md:justify-start text-amber-600 font-semibold text-sm group-hover:text-amber-700">
+                    เข้าสู่ระบบ 
+                    <span class="ml-2 group-hover:translate-x-1 transition-transform">→</span>
+                </div>
+            </a>
+
+            <a href="dashboard.html" class="menu-card bg-white rounded-[2rem] p-8 border border-slate-100 transition-all duration-300 group block relative overflow-hidden text-center md:text-left cursor-pointer">
+                <div class="absolute -right-8 -top-8 w-32 h-32 bg-emerald-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500"></div>
+                <div class="text-5xl mb-6 relative z-10">📊</div>
+                <h2 class="text-xl font-bold text-slate-800 mb-2 relative z-10">Dashboard สรุปข้อมูล</h2>
+                <p class="text-sm text-slate-500 relative z-10 leading-relaxed">หน้าสรุปสถิติภาพรวม อัตราการมาเรียน คะแนนรวม และดาวน์โหลดตารางข้อมูลเป็น Excel</p>
+                <div class="mt-6 flex items-center justify-center md:justify-start text-emerald-600 font-semibold text-sm group-hover:text-emerald-700">
+                    เข้าสู่ระบบ 
+                    <span class="ml-2 group-hover:translate-x-1 transition-transform">→</span>
+                </div>
+            </a>
+
+        </div>
+        
+        <div class="mt-12 text-center">
+            <p class="text-xs text-slate-400 font-medium">© 2026 Classroom Management System. All rights reserved.</p>
+        </div>
+
+    </div>
+
+</body>
+</html>
