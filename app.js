@@ -1,130 +1,291 @@
-// ==========================================
-// 1. ใส่ URL และ KEY ของคุณตรงนี้ได้เลย (ไม่ต้องใช้ config.js แล้ว)
-// ==========================================
-const SUPABASE_URL = 'https://pqkaqsxmbewilzruogdw.supabase.co'; 
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxa2Fxc3htYmV3aWx6cnVvZ2R3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0ODgzMTksImV4cCI6MjA4NDA2NDMxOX0.TFyfNcFXcUUF29Iexmkjf6EaNIXAv8KuOFY_ydAY_z8';
+// app.js
 
-// ใช้ var เพื่อป้องกันปัญหาตัวแปรโหลดไม่ทัน (Initialization Error)
-var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-var currentStudents = [];
+// 1. Initializing Supabase using config.js variables
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentStudents = [];
+let currentMode = 'attendance'; // 'attendance' or 'score'
+
+// Set default date to today
+document.getElementById('dateSelect').valueAsDate = new Date();
 
 // ==========================================
-// 2. ฟังก์ชันโหลดรายชื่อ
+// 2. ฟังก์ชันสลับโหมด (เช็คชื่อ vs บันทึกคะแนน)
+// ==========================================
+function setMode(mode) {
+    currentMode = mode;
+    const tabAtt = document.getElementById('tabAttendance');
+    const tabScore = document.getElementById('tabScore');
+    const scoreFields = document.getElementById('scoreFieldsContainer');
+    const topicField = document.getElementById('topicFieldContainer');
+    const btnSelectAll = document.getElementById('btnSelectAll');
+    
+    // รีเซ็ตตาราง
+    document.getElementById('tableContainer').style.display = 'none';
+    document.getElementById('action-bar').classList.add('translate-y-full');
+    btnSelectAll.style.display = 'none';
+
+    if (mode === 'attendance') {
+        tabAtt.className = 'tab-active flex-1 py-3 px-4 rounded-xl font-bold transition border';
+        tabScore.className = 'tab-inactive flex-1 py-3 px-4 rounded-xl font-bold transition border';
+        scoreFields.classList.add('hidden');
+        topicField.classList.add('hidden');
+        btnSelectAll.innerHTML = '✅ มาเรียนทุกคน';
+    } else {
+        tabScore.className = 'tab-active flex-1 py-3 px-4 rounded-xl font-bold transition border';
+        tabAtt.className = 'tab-inactive flex-1 py-3 px-4 rounded-xl font-bold transition border';
+        scoreFields.classList.remove('hidden');
+        topicField.classList.remove('hidden');
+        btnSelectAll.innerHTML = '⚡️ กรอกคะแนนเดียวกันให้ทุกคน';
+    }
+}
+
+// ==========================================
+// 3. ฟังก์ชันการทำงานของปุ่ม "เลือกทั้งหมด"
+// ==========================================
+function actionSelectAll() {
+    if (currentMode === 'attendance') {
+        // เช็ควิทยุ 'present' ให้ทุกคน
+        document.querySelectorAll('.radio-present').forEach(radio => {
+            radio.checked = true;
+        });
+    } else {
+        // กรอกคะแนนให้ทุกคน
+        const score = prompt("กรุณากรอกคะแนนที่ต้องการให้ทุกคน:");
+        if (score !== null && score.trim() !== "") {
+            document.querySelectorAll('.student-score').forEach(input => {
+                input.value = score;
+            });
+        }
+    }
+}
+
+// ==========================================
+// 4. ฟังก์ชันโหลดรายชื่อ และสร้างตาราง
 // ==========================================
 async function loadStudents() {
     const room = document.getElementById('roomSelect').value;
     const period = document.getElementById('periodSelect').value;
+    const date = document.getElementById('dateSelect').value;
 
-    if (!room || !period) {
-        alert("กรุณาเลือกห้องและคาบเรียนให้ครบถ้วน");
+    if (!room || !period || !date) {
+        alert("กรุณาเลือกวันที่ ห้อง และคาบเรียนให้ครบถ้วน");
         return;
     }
 
     const tbody = document.getElementById('studentTableBody');
-    tbody.innerHTML = '<tr><td colspan="4" class="text-center p-6 text-gray-500 animate-pulse">กำลังโหลดข้อมูล...</td></tr>';
+    const thead = document.getElementById('tableHeader');
     
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center p-6 text-gray-500 animate-pulse">กำลังโหลดข้อมูล...</td></tr>';
     document.getElementById('tableContainer').style.display = 'block';
-    document.getElementById('action-bar').classList.remove('translate-y-full');
     
-    const statusMsg = document.getElementById('statusMsg');
-    statusMsg.textContent = 'พร้อมกรอกคะแนน';
-    statusMsg.className = 'text-sm font-semibold text-gray-500 truncate flex-1';
-
     try {
         const { data, error } = await supabaseClient
-            .from('students_m33201_1_2569')
+            .from('students_m33201_1_2569') // ชื่อตารางรายชื่อนักเรียนของคุณ
             .select('*')
             .eq('room', room)
             .order('room_num', { ascending: true });
 
         if (error) throw error;
-
         currentStudents = data;
         tbody.innerHTML = '';
 
         if (currentStudents.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-red-500 font-semibold">ไม่พบรายชื่อนักเรียนห้อง ${room}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-red-500 font-semibold">ไม่พบรายชื่อนักเรียนห้อง ${room}</td></tr>`;
             document.getElementById('action-bar').classList.add('translate-y-full');
+            document.getElementById('btnSelectAll').style.display = 'none';
             return;
         }
 
+        // โชว์ปุ่ม Action Bar และ ปุ่มเลือกทั้งหมด
+        document.getElementById('action-bar').classList.remove('translate-y-full');
+        document.getElementById('btnSelectAll').style.display = 'block';
+        document.getElementById('statusMsg').textContent = 'พร้อมบันทึกข้อมูล';
+        document.getElementById('statusMsg').className = 'text-sm font-semibold text-gray-500 truncate flex-1';
+
+        // สร้าง Header ตามโหมด
+        if (currentMode === 'attendance') {
+            thead.innerHTML = `
+                <tr>
+                    <th class="p-3 font-semibold text-center w-12">ที่</th>
+                    <th class="p-3 font-semibold w-20 hidden md:table-cell">รหัส</th>
+                    <th class="p-3 font-semibold">ชื่อ - นามสกุล</th>
+                    <th class="p-3 font-semibold text-center min-w-[200px]">สถานะการเข้าเรียน</th>
+                </tr>
+            `;
+        } else {
+            thead.innerHTML = `
+                <tr>
+                    <th class="p-3 font-semibold text-center w-12">ที่</th>
+                    <th class="p-3 font-semibold w-20 hidden md:table-cell">รหัส</th>
+                    <th class="p-3 font-semibold">ชื่อ - นามสกุล</th>
+                    <th class="p-3 font-semibold text-center w-32">คะแนน</th>
+                </tr>
+            `;
+        }
+
+        // สร้าง Body ตามโหมด
         currentStudents.forEach((student, index) => {
             const tr = document.createElement('tr');
             tr.className = "hover:bg-blue-50 transition-colors";
+            
+            let actionHtml = '';
+            if (currentMode === 'attendance') {
+                actionHtml = `
+                    <td class="p-2 align-middle text-center flex justify-center gap-2 sm:gap-4">
+                        <label class="cursor-pointer text-green-600 flex flex-col items-center">
+                            <input type="radio" name="status_${index}" value="มา" class="radio-present w-5 h-5 mb-1 cursor-pointer accent-green-600"> มา
+                        </label>
+                        <label class="cursor-pointer text-red-500 flex flex-col items-center">
+                            <input type="radio" name="status_${index}" value="ขาด" class="w-5 h-5 mb-1 cursor-pointer accent-red-500"> ขาด
+                        </label>
+                        <label class="cursor-pointer text-orange-500 flex flex-col items-center">
+                            <input type="radio" name="status_${index}" value="ลา" class="w-5 h-5 mb-1 cursor-pointer accent-orange-500"> ลา
+                        </label>
+                        <label class="cursor-pointer text-yellow-600 flex flex-col items-center">
+                            <input type="radio" name="status_${index}" value="สาย" class="w-5 h-5 mb-1 cursor-pointer accent-yellow-600"> สาย
+                        </label>
+                    </td>
+                `;
+            } else {
+                actionHtml = `
+                    <td class="p-2 align-middle text-center">
+                        <input type="number" inputmode="decimal" class="student-score w-24 mx-auto bg-gray-50 border border-gray-300 rounded-lg h-10 text-center text-lg font-bold text-blue-600 outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-inner" placeholder="-" data-index="${index}">
+                    </td>
+                `;
+            }
+
             tr.innerHTML = `
                 <td class="p-3 text-center text-gray-500 font-medium">${student.room_num || '-'}</td>
                 <td class="p-3 text-gray-400 text-sm hidden md:table-cell">${student.std_id}</td>
                 <td class="p-3 text-gray-800 font-medium">${student.name}</td>
-                <td class="p-2 align-middle text-center">
-                    <input type="number" inputmode="decimal" class="student-score w-full bg-gray-50 border border-gray-300 rounded-lg h-12 text-center text-lg font-bold text-blue-600 outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-inner" placeholder="-" data-index="${index}">
-                </td>
+                ${actionHtml}
             `;
             tbody.appendChild(tr);
         });
 
     } catch (error) {
         console.error('Error:', error);
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-red-500 font-semibold">Error: ${error.message || 'เชื่อมต่อฐานข้อมูลไม่สำเร็จ'}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-red-500 font-semibold">Error: ${error.message}</td></tr>`;
     }
 }
 
 // ==========================================
-// 3. ฟังก์ชันบันทึกข้อมูล
+// 5. ฟังก์ชันบันทึกข้อมูล (แยกตรรกะตามโหมด)
 // ==========================================
 async function saveData() {
+    const dateStr = document.getElementById('dateSelect').value;
     const room = document.getElementById('roomSelect').value;
     const period = document.getElementById('periodSelect').value;
-    const type = document.getElementById('typeSelect').value;
     const statusMsg = document.getElementById('statusMsg');
 
-    statusMsg.textContent = 'กำลังบันทึก...';
+    statusMsg.textContent = 'กำลังบันทึกข้อมูล...';
     statusMsg.className = 'text-sm font-bold text-blue-600 truncate flex-1';
 
-    const rows = document.querySelectorAll('#studentTableBody tr');
     const recordsToInsert = [];
 
-    rows.forEach((row) => {
-        const scoreInput = row.querySelector('.student-score');
-        if (!scoreInput) return;
+    if (currentMode === 'attendance') {
+        // ประมวลผลข้อมูลเช็คชื่อ
+        currentStudents.forEach((student, index) => {
+            const selectedStatus = document.querySelector(`input[name="status_${index}"]:checked`);
+            if (selectedStatus) {
+                recordsToInsert.push({
+                    record_date: dateStr,
+                    room_number: room,
+                    period_number: parseInt(period),
+                    std_id: student.std_id,
+                    student_name: student.name,
+                    status: selectedStatus.value
+                });
+            }
+        });
 
-        const scoreValue = scoreInput.value.trim();
-        const index = scoreInput.getAttribute('data-index');
-        const student = currentStudents[index];
-
-        if (scoreValue !== "") {
-            recordsToInsert.push({
-                room_number: room,
-                period_number: parseInt(period),
-                task_type: type,
-                std_id: student.std_id,
-                student_name: student.name,
-                score: parseFloat(scoreValue)
-            });
+        if (recordsToInsert.length === 0) {
+            statusMsg.textContent = 'กรุณาเช็คชื่ออย่างน้อย 1 คน';
+            statusMsg.className = 'text-sm font-bold text-red-500 truncate flex-1';
+            return;
         }
-    });
 
-    if (recordsToInsert.length === 0) {
-        statusMsg.textContent = 'กรุณากรอกคะแนนอย่างน้อย 1 คน';
-        statusMsg.className = 'text-sm font-bold text-red-500 truncate flex-1';
-        return;
+        try {
+            // สมมติว่าสร้างตารางใหม่ชื่อ attendance_records ไว้ใน Supabase
+            const { data, error } = await supabaseClient
+                .from('attendance_records') 
+                .insert(recordsToInsert);
+
+            if (error) throw error;
+            successSave(`บันทึกเช็คชื่อสำเร็จ (${recordsToInsert.length} คน)`);
+
+            // เคลียร์ค่าตัวเลือก
+            document.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
+
+        } catch (error) {
+            handleError(error, statusMsg);
+        }
+
+    } else if (currentMode === 'score') {
+        // ประมวลผลข้อมูลบันทึกคะแนน
+        const type = document.getElementById('typeSelect').value;
+        const topic = document.getElementById('topicInput').value;
+
+        if (!topic.trim()) {
+            statusMsg.textContent = 'กรุณากรอกหัวข้อเรื่อง/รายละเอียดงาน';
+            statusMsg.className = 'text-sm font-bold text-red-500 truncate flex-1';
+            document.getElementById('topicInput').focus();
+            return;
+        }
+
+        document.querySelectorAll('.student-score').forEach(scoreInput => {
+            const scoreValue = scoreInput.value.trim();
+            const index = scoreInput.getAttribute('data-index');
+            const student = currentStudents[index];
+
+            if (scoreValue !== "") {
+                recordsToInsert.push({
+                    record_date: dateStr,
+                    room_number: room,
+                    period_number: parseInt(period),
+                    task_type: type,
+                    topic: topic,
+                    std_id: student.std_id,
+                    student_name: student.name,
+                    score: parseFloat(scoreValue)
+                });
+            }
+        });
+
+        if (recordsToInsert.length === 0) {
+            statusMsg.textContent = 'กรุณากรอกคะแนนอย่างน้อย 1 คน';
+            statusMsg.className = 'text-sm font-bold text-red-500 truncate flex-1';
+            return;
+        }
+
+        try {
+            const { data, error } = await supabaseClient
+                .from('students_m33201_1_2569_records')
+                .insert(recordsToInsert);
+
+            if (error) throw error;
+            successSave(`บันทึกคะแนนสำเร็จ (${recordsToInsert.length} คน)`);
+
+            // เคลียร์ค่าช่องคะแนน
+            document.querySelectorAll('.student-score').forEach(input => input.value = '');
+
+        } catch (error) {
+            handleError(error, statusMsg);
+        }
     }
+}
 
-    try {
-        const { data, error } = await supabaseClient
-            .from('students_m33201_1_2569_records')
-            .insert(recordsToInsert);
+// Helper Functions
+function successSave(message) {
+    const statusMsg = document.getElementById('statusMsg');
+    statusMsg.textContent = message;
+    statusMsg.className = 'text-sm font-bold text-green-600 truncate flex-1';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
-        if (error) throw error;
-
-        statusMsg.textContent = `บันทึกสำเร็จ (${recordsToInsert.length} คน)!`;
-        statusMsg.className = 'text-sm font-bold text-green-600 truncate flex-1';
-        
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        document.querySelectorAll('.student-score').forEach(input => input.value = '');
-
-    } catch (error) {
-        console.error('Error:', error);
-        statusMsg.textContent = 'บันทึกไม่สำเร็จ ลองอีกครั้ง';
-        statusMsg.className = 'text-sm font-bold text-red-500 truncate flex-1';
-    }
+function handleError(error, statusElement) {
+    console.error('Database Error:', error);
+    statusElement.textContent = `เกิดข้อผิดพลาด: ${error.message}`;
+    statusElement.className = 'text-sm font-bold text-red-500 truncate flex-1';
 }
