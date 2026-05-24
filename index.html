@@ -2,104 +2,113 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ระบบจัดการชั้นเรียน ม.3 (2569)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ระบบจัดการชั้นเรียน ม.3</title>
+    <!-- เพิ่ม Font Prompt ให้ดูทันสมัยขึ้น -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        body { font-family: 'Prompt', sans-serif; }
         input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
-            -webkit-appearance: none; 
-            margin: 0; 
-        }
-        .tab-active { background-color: #2563eb; color: white; border-color: #2563eb; }
-        .tab-inactive { background-color: white; color: #4b5563; border-color: #d1d5db; }
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        /* สไตล์สำหรับ iOS Segmented Control */
+        .tab-active { background-color: #ffffff; color: #0f172a; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 0.5rem; font-weight: 600; }
+        .tab-inactive { background-color: transparent; color: #64748b; font-weight: 500; }
+        
+        /* ปรับแต่ง Scrollbar บน iPad */
+        ::-webkit-scrollbar { height: 6px; width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans pb-28 md:pb-12">
+<body class="bg-[#f4f6f9] text-slate-800 pb-32 md:pb-24 pt-4 md:pt-8 antialiased selection:bg-slate-200">
     
-    <div class="max-w-5xl mx-auto md:mt-6 bg-white md:rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <!-- Header -->
-        <div class="bg-blue-700 text-white p-6 text-center md:text-left">
-            <h1 class="text-2xl font-bold tracking-wide">ระบบจัดการชั้นเรียน</h1>
-            <p class="text-blue-100 mt-1 text-sm">ม33201 ภาคเรียนที่ 1/2569</p>
+    <!-- Main Container: ปรับให้พอดีกับ iPad Pro (max-w-5xl) และ iPhone (mx-4) -->
+    <div class="max-w-5xl mx-4 md:mx-auto bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100">
+        
+        <!-- Header: โทน Navy Blue Gradient -->
+        <div class="bg-gradient-to-r from-slate-900 to-blue-900 text-white p-8 text-center md:text-left relative overflow-hidden">
+            <div class="relative z-10">
+                <h1 class="text-3xl font-bold tracking-tight">ระบบจัดการชั้นเรียน</h1>
+                <p class="text-blue-200 mt-2 text-sm font-medium opacity-90 tracking-wide">รายวิชา ม33201 • ภาคเรียนที่ 1/2569</p>
+            </div>
+            <!-- Background Decoration -->
+            <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white opacity-5 blur-3xl"></div>
         </div>
         
-        <div class="p-4 md:p-6">
-            <!-- Tabs -->
-            <div class="flex gap-2 mb-6">
-                <button id="tabAttendance" onclick="setMode('attendance')" class="tab-active flex-1 py-3 px-4 rounded-xl font-bold transition border">
-                    📋 เช็คชื่อ
+        <div class="p-5 md:p-8">
+            <!-- Tabs (iOS Style Segmented Control) -->
+            <div class="flex p-1.5 space-x-1 bg-slate-100 rounded-xl mb-8">
+                <button id="tabAttendance" onclick="setMode('attendance')" class="tab-active flex-1 py-3 text-sm md:text-base transition-all duration-200">
+                    📋 เช็คชื่อนักเรียน
                 </button>
-                <button id="tabScore" onclick="setMode('score')" class="tab-inactive flex-1 py-3 px-4 rounded-xl font-bold transition border">
+                <button id="tabScore" onclick="setMode('score')" class="tab-inactive flex-1 py-3 text-sm md:text-base transition-all duration-200 hover:text-slate-700">
                     📝 บันทึกคะแนน
                 </button>
             </div>
 
             <!-- Form Filters -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5 mb-5">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-600 mb-1">วันที่</label>
-                    <input type="date" id="dateSelect" class="w-full bg-gray-50 border border-gray-300 rounded-xl h-11 px-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">วันที่</label>
+                    <input type="date" id="dateSelect" class="w-full bg-slate-50 border border-slate-200 rounded-2xl h-14 px-4 text-sm md:text-base focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-600 mb-1">ห้องเรียน</label>
-                    <select id="roomSelect" class="w-full bg-gray-50 border border-gray-300 rounded-xl h-11 px-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                        <option value="" disabled selected>เลือก...</option>
-                        <option value="1">ห้อง 1</option>
-                        <option value="2">ห้อง 2</option>
-                        <option value="3">ห้อง 3</option>
-                        <option value="4">ห้อง 4</option>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">ห้องเรียน</label>
+                    <select id="roomSelect" class="w-full bg-slate-50 border border-slate-200 rounded-2xl h-14 px-4 text-sm md:text-base focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all appearance-none cursor-pointer">
+                        <option value="" disabled selected>เลือกห้อง...</option>
+                        <option value="1">ห้อง 1</option><option value="2">ห้อง 2</option>
+                        <option value="3">ห้อง 3</option><option value="4">ห้อง 4</option>
                         <option value="8">ห้อง 8</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-gray-600 mb-1">คาบเรียน</label>
-                    <select id="periodSelect" class="w-full bg-gray-50 border border-gray-300 rounded-xl h-11 px-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                        <option value="" disabled selected>เลือก...</option>
-                        <option value="1">คาบ 1</option>
-                        <option value="2">คาบ 2</option>
-                        <option value="3">คาบ 3</option>
-                        <option value="4">คาบ 4</option>
-                        <option value="5">คาบ 5</option>
-                        <option value="6">คาบ 6</option>
-                        <option value="7">คาบ 7</option>
-                        <option value="8">คาบ 8</option>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">คาบเรียน</label>
+                    <select id="periodSelect" class="w-full bg-slate-50 border border-slate-200 rounded-2xl h-14 px-4 text-sm md:text-base focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all appearance-none cursor-pointer">
+                        <option value="" disabled selected>เลือกคาบ...</option>
+                        <option value="1">คาบ 1</option><option value="2">คาบ 2</option>
+                        <option value="3">คาบ 3</option><option value="4">คาบ 4</option>
+                        <option value="5">คาบ 5</option><option value="6">คาบ 6</option>
+                        <option value="7">คาบ 7</option><option value="8">คาบ 8</option>
                     </select>
                 </div>
+                
                 <!-- ส่วนที่โชว์เฉพาะโหมดคะแนน -->
                 <div id="scoreFieldsContainer" class="hidden col-span-2 md:col-span-1">
-                    <label class="block text-sm font-semibold text-gray-600 mb-1">ประเภท</label>
-                    <select id="typeSelect" class="w-full bg-gray-50 border border-gray-300 rounded-xl h-11 px-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">ประเภท</label>
+                    <select id="typeSelect" class="w-full bg-slate-50 border border-slate-200 rounded-2xl h-14 px-4 text-sm md:text-base focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all appearance-none cursor-pointer">
                         <option value="Homework">การบ้าน (Homework)</option>
                         <option value="Quiz">ควิซ (Quiz)</option>
                         <option value="Bonus">โบนัส (Bonus)</option>
                     </select>
                 </div>
-                <div id="topicFieldContainer" class="hidden col-span-2 md:col-span-4">
-                    <label class="block text-sm font-semibold text-gray-600 mb-1">หัวข้อเรื่อง / รายละเอียด</label>
-                    <input type="text" id="topicInput" placeholder="เช่น แบบฝึกหัดบทที่ 1, ตอบคำถามท้ายคาบ..." class="w-full bg-gray-50 border border-gray-300 rounded-xl h-11 px-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                <div id="topicFieldContainer" class="hidden col-span-2 md:col-span-4 mt-2">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">หัวข้อเรื่อง / รายละเอียด</label>
+                    <input type="text" id="topicInput" placeholder="เช่น แบบฝึกหัดบทที่ 1..." class="w-full bg-slate-50 border border-slate-200 rounded-2xl h-14 px-4 text-sm md:text-base focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all placeholder:text-slate-400">
                 </div>
             </div>
 
-            <!-- Buttons -->
-            <div class="flex flex-col sm:flex-row gap-3 mb-6">
-                <button onclick="loadStudents()" class="flex-1 bg-blue-50 text-blue-700 h-12 rounded-xl font-bold hover:bg-blue-100 active:bg-blue-200 transition border border-blue-200">
-                    🔍 โหลดรายชื่อนักเรียน
+            <!-- Buttons Action -->
+            <div class="flex flex-col sm:flex-row gap-3 mb-8 mt-6">
+                <button onclick="loadStudents()" class="flex-1 bg-slate-900 text-white h-14 rounded-2xl font-semibold hover:bg-slate-800 active:bg-black transition-all shadow-md shadow-slate-900/20 text-base">
+                    โหลดรายชื่อนักเรียน
                 </button>
-                <button id="btnSelectAll" onclick="actionSelectAll()" style="display: none;" class="flex-1 bg-green-50 text-green-700 h-12 rounded-xl font-bold hover:bg-green-100 active:bg-green-200 transition border border-green-200">
-                    ✅ เลือกทั้งหมด / กรอกคะแนนทุกคน
+                <button id="btnSelectAll" onclick="actionSelectAll()" style="display: none;" class="flex-1 bg-white text-slate-700 h-14 rounded-2xl font-semibold hover:bg-slate-50 active:bg-slate-100 transition-all border border-slate-200 shadow-sm text-base">
+                    ✅ มาเรียนทุกคน
                 </button>
             </div>
 
-            <!-- Table -->
+            <!-- Table Container -->
             <div id="tableContainer" style="display: none;">
-                <div class="overflow-x-auto rounded-xl border border-gray-200">
+                <div class="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm">
                     <table class="w-full text-left bg-white whitespace-nowrap">
-                        <thead id="tableHeader" class="bg-gray-100 text-gray-600 border-b border-gray-200 text-sm">
+                        <thead id="tableHeader" class="bg-slate-50 text-slate-600 border-b border-slate-200 text-sm">
                             <!-- Header render dynamically -->
                         </thead>
-                        <tbody id="studentTableBody" class="divide-y divide-gray-100">
+                        <tbody id="studentTableBody" class="divide-y divide-slate-100 text-sm md:text-base">
                         </tbody>
                     </table>
                 </div>
@@ -107,15 +116,25 @@
         </div>
     </div>
 
-    <!-- Action Bar (Sticky Bottom) -->
-    <div id="action-bar" class="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-4px_15px_rgba(0,0,0,0.05)] p-4 md:p-5 z-50 transform translate-y-full transition-transform duration-300 flex justify-between items-center">
+    <!-- Action Bar (Glassmorphism & iOS Bottom Bar feel) -->
+    <div id="action-bar" class="fixed bottom-0 left-0 w-full bg-white/80 backdrop-blur-xl border-t border-slate-200/60 p-4 md:p-6 z-50 transform translate-y-full transition-transform duration-400 ease-out pb-safe">
         <div class="max-w-5xl mx-auto w-full flex justify-between items-center gap-4">
-            <p id="statusMsg" class="text-sm font-semibold truncate flex-1 text-gray-500">พร้อมบันทึกข้อมูล</p>
-            <button onclick="saveData()" class="bg-blue-600 text-white h-12 px-6 sm:px-10 rounded-xl font-bold shadow-md hover:bg-blue-700 active:bg-blue-800 transition text-base w-auto shrink-0">
-                💾 บันทึกข้อมูล
+            <div class="flex items-center gap-3 flex-1 overflow-hidden">
+                <div class="w-2 h-2 rounded-full bg-slate-400 animate-pulse" id="statusDot"></div>
+                <p id="statusMsg" class="text-sm md:text-base font-semibold truncate text-slate-600">พร้อมบันทึกข้อมูล</p>
+            </div>
+            <button onclick="saveData()" class="bg-blue-600 text-white h-12 md:h-14 px-8 md:px-10 rounded-2xl font-semibold shadow-lg shadow-blue-600/30 hover:bg-blue-700 active:bg-blue-800 transition-all text-sm md:text-base w-auto shrink-0">
+                บันทึกข้อมูล
             </button>
         </div>
     </div>
+
+    <!-- Padding for iOS home indicator -->
+    <style>
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+            .pb-safe { padding-bottom: calc(1rem + env(safe-area-inset-bottom)); }
+        }
+    </style>
 
     <script src="config.js"></script>
     <script src="app.js"></script>
