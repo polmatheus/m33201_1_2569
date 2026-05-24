@@ -1,22 +1,40 @@
 // app.js
 
-// 1. Initializing Supabase
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
+let supabaseClient = null;
 let currentStudents = [];
-let currentMode = 'attendance'; // 'attendance' or 'score'
+let currentMode = 'attendance';
 
-// ✅ แก้ไข: รอให้ HTML โหลดเสร็จก่อน แล้วค่อยใส่วันที่ปัจจุบัน เพื่อป้องกัน Error ตัวแปรเป็น null
+// ฟังก์ชันสำหรับตรวจสอบและเชื่อมต่อ Supabase อย่างปลอดภัย
+function initSupabase() {
+    try {
+        if (typeof SUPABASE_URL === 'undefined' || typeof SUPABASE_KEY === 'undefined') {
+            alert("❌ ไม่พบไฟล์ config.js หรือตัวแปร SUPABASE_URL/KEY หายไป\n(ตรวจดูว่าไฟล์ config.js อยู่ที่เดียวกับ index.html หรือไม่)");
+            return false;
+        }
+        if (!supabaseClient) {
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        }
+        return true;
+    } catch (error) {
+        alert("❌ โหลด Supabase ไม่สำเร็จ: " + error.message);
+        return false;
+    }
+}
+
+// ใส่วันที่ปัจจุบันอัตโนมัติเมื่อเว็บโหลดเสร็จ
 document.addEventListener("DOMContentLoaded", () => {
-    const dateInput = document.getElementById('dateSelect');
-    if (dateInput) {
-        // ดึงวันที่ปัจจุบันในรูปแบบ YYYY-MM-DD
-        dateInput.value = new Date().toISOString().split('T')[0];
+    try {
+        const dateInput = document.getElementById('dateSelect');
+        if (dateInput) {
+            dateInput.value = new Date().toISOString().split('T')[0];
+        }
+    } catch(e) {
+        console.error("Date setting error:", e);
     }
 });
 
 // ==========================================
-// 2. ฟังก์ชันสลับโหมด (เช็คชื่อ vs บันทึกคะแนน)
+// ฟังก์ชันสลับโหมด (เช็คชื่อ vs บันทึกคะแนน)
 // ==========================================
 function setMode(mode) {
     currentMode = mode;
@@ -26,7 +44,6 @@ function setMode(mode) {
     const topicField = document.getElementById('topicFieldContainer');
     const btnSelectAll = document.getElementById('btnSelectAll');
     
-    // รีเซ็ตตาราง
     document.getElementById('tableContainer').style.display = 'none';
     document.getElementById('action-bar').classList.add('translate-y-full');
     btnSelectAll.style.display = 'none';
@@ -47,42 +64,40 @@ function setMode(mode) {
 }
 
 // ==========================================
-// 3. ฟังก์ชันการทำงานของปุ่ม "เลือกทั้งหมด"
+// ฟังก์ชันการทำงานของปุ่ม "เลือกทั้งหมด"
 // ==========================================
 function actionSelectAll() {
     if (currentMode === 'attendance') {
-        // เช็ควิทยุ 'present' ให้ทุกคน
-        document.querySelectorAll('.radio-present').forEach(radio => {
-            radio.checked = true;
-        });
+        document.querySelectorAll('.radio-present').forEach(radio => radio.checked = true);
     } else {
-        // กรอกคะแนนให้ทุกคน
         const score = prompt("กรุณากรอกคะแนนที่ต้องการให้ทุกคน:");
         if (score !== null && score.trim() !== "") {
-            document.querySelectorAll('.student-score').forEach(input => {
-                input.value = score;
-            });
+            document.querySelectorAll('.student-score').forEach(input => input.value = score);
         }
     }
 }
 
 // ==========================================
-// 4. ฟังก์ชันโหลดรายชื่อ และสร้างตาราง
+// ฟังก์ชันโหลดรายชื่อ และสร้างตาราง
 // ==========================================
 async function loadStudents() {
+    // 1. เช็คว่าการเชื่อมต่อ Supabase พร้อมไหม
+    if (!initSupabase()) return;
+
+    // 2. ตรวจสอบข้อมูลที่ผู้ใช้เลือก
     const room = document.getElementById('roomSelect').value;
     const period = document.getElementById('periodSelect').value;
     const date = document.getElementById('dateSelect').value;
 
     if (!room || !period || !date) {
-        alert("กรุณาเลือกวันที่ ห้อง และคาบเรียนให้ครบถ้วน");
+        alert("⚠️ กรุณาเลือก วันที่, ห้องเรียน และ คาบเรียน ให้ครบถ้วน");
         return;
     }
 
     const tbody = document.getElementById('studentTableBody');
     const thead = document.getElementById('tableHeader');
     
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center p-6 text-gray-500 animate-pulse">กำลังโหลดข้อมูล...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center p-6 text-blue-500 font-bold animate-pulse">กำลังโหลดข้อมูล...</td></tr>';
     document.getElementById('tableContainer').style.display = 'block';
     
     try {
@@ -103,7 +118,6 @@ async function loadStudents() {
             return;
         }
 
-        // โชว์ปุ่ม Action Bar
         document.getElementById('action-bar').classList.remove('translate-y-full');
         document.getElementById('btnSelectAll').style.display = 'block';
         document.getElementById('statusMsg').textContent = 'พร้อมบันทึกข้อมูล';
@@ -170,14 +184,16 @@ async function loadStudents() {
 
     } catch (error) {
         console.error('Error:', error);
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-red-500 font-semibold">Error: ${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-red-500 font-semibold">พบปัญหา: ${error.message}</td></tr>`;
     }
 }
 
 // ==========================================
-// 5. ฟังก์ชันบันทึกข้อมูล
+// ฟังก์ชันบันทึกข้อมูล
 // ==========================================
 async function saveData() {
+    if (!initSupabase()) return;
+
     const dateStr = document.getElementById('dateSelect').value;
     const room = document.getElementById('roomSelect').value;
     const period = document.getElementById('periodSelect').value;
