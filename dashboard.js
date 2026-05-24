@@ -28,7 +28,7 @@ async function loadDashboard() {
 
     loadingState.classList.remove('hidden');
     dashboardContent.classList.add('hidden');
-    btnExcel.classList.add('hidden'); // ซ่อนปุ่ม Excel ไว้ก่อนจนกว่าจะโหลดเสร็จ
+    if(btnExcel) btnExcel.classList.add('hidden'); 
     tbody.innerHTML = '';
 
     try {
@@ -74,16 +74,13 @@ async function loadDashboard() {
             };
         });
 
-        // ตัวแปรนับจำนวนครั้งที่เช็คชื่อ (นับจาก วันที่ + คาบ + ห้อง ที่ไม่ซ้ำกัน)
         const uniqueCheckSessions = new Set();
         let totalAttendanceRecords = 0;
         let totalPresent = 0;
         let totalAbsent = 0;
 
         attData.forEach(record => {
-            // สร้าง Key เพื่อเช็คว่าคาบนี้เคยนับหรือยัง เช่น "2026-05-25_คาบ1_ห้อง3"
             uniqueCheckSessions.add(`${record.record_date}_${record.period_number}_${record.room_number}`);
-
             if (studentStats[record.std_id]) {
                 totalAttendanceRecords++;
                 if (record.status === 'มา') {
@@ -123,7 +120,7 @@ async function loadDashboard() {
         // ==========================================
         const totalStudents = studentsData.length;
         document.getElementById('totalStudents').innerText = totalStudents;
-        document.getElementById('totalChecks').innerText = uniqueCheckSessions.size; // อัปเดตจำนวนครั้ง
+        document.getElementById('totalChecks').innerText = uniqueCheckSessions.size; 
         document.getElementById('totalAbsence').innerText = totalAbsent;
         
         if (totalAttendanceRecords > 0) {
@@ -152,6 +149,8 @@ async function loadDashboard() {
                 const stat = studentStats[student.std_id];
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 transition-colors";
+                
+                // สังเกตตรงนี้: เราบังคับให้สร้าง 12 คอลัมน์ ตรงกับ HTML พอดีเป๊ะ
                 tr.innerHTML = `
                     <td class="p-3 text-center font-bold text-slate-500">${stat.room}</td>
                     <td class="p-3 text-center font-bold text-slate-700">${stat.room_num || '-'}</td>
@@ -170,7 +169,8 @@ async function loadDashboard() {
                 `;
                 tbody.appendChild(tr);
             });
-            btnExcel.classList.remove('hidden'); // โชว์ปุ่ม Excel เมื่อมีข้อมูล
+            
+            if(btnExcel) btnExcel.classList.remove('hidden'); 
         }
 
         loadingState.classList.add('hidden');
@@ -182,21 +182,15 @@ async function loadDashboard() {
     }
 }
 
-// ==========================================
-// ฟังก์ชันส่งออกตารางเป็นไฟล์ Excel
-// ==========================================
 function exportToExcel() {
     const room = document.getElementById('roomSelect').value;
     const roomText = room === 'all' ? 'ทุกห้อง' : `ห้อง${room}`;
-    
-    // ตั้งชื่อไฟล์พร้อมวันที่ปัจจุบัน
     const dateStr = new Date().toISOString().split('T')[0];
     const fileName = `สรุปข้อมูล_ม33201_${roomText}_${dateStr}.xlsx`;
 
-    // อ้างอิงถึง Table ใน HTML และสร้างไฟล์
     const tableElement = document.getElementById("dataTable");
-    const workbook = XLSX.utils.table_to_book(tableElement, { sheet: "สรุปคะแนนและเวลาเรียน" });
-    
-    // ดาวน์โหลด
-    XLSX.writeFile(workbook, fileName);
+    if(tableElement) {
+        const workbook = XLSX.utils.table_to_book(tableElement, { sheet: "สรุปคะแนนและเวลาเรียน" });
+        XLSX.writeFile(workbook, fileName);
+    }
 }
