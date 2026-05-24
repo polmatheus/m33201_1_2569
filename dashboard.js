@@ -1,5 +1,4 @@
 // dashboard.js
-
 let supabaseClient = null;
 
 function initSupabase() {
@@ -14,7 +13,6 @@ function initSupabase() {
     }
 }
 
-// โหลดข้อมูลอัตโนมัติเมื่อเปิดหน้าเว็บ
 document.addEventListener("DOMContentLoaded", () => {
     loadDashboard();
 });
@@ -26,24 +24,32 @@ async function loadDashboard() {
     const loadingState = document.getElementById('loadingState');
     const dashboardContent = document.getElementById('dashboardContent');
     const tbody = document.getElementById('summaryTableBody');
+    const btnExcel = document.getElementById('btnExcel');
 
-    // UI States
     loadingState.classList.remove('hidden');
     dashboardContent.classList.add('hidden');
+    btnExcel.classList.add('hidden'); // ซ่อนปุ่ม Excel ไว้ก่อนจนกว่าจะโหลดเสร็จ
     tbody.innerHTML = '';
 
     try {
-        // 1. ดึงข้อมูลรายชื่อนักเรียน
+        // 1. ดึงข้อมูลนักเรียนทั้งหมด (ให้ฐานข้อมูลเรียงให้ระดับนึงก่อน)
         let studentsQuery = supabaseClient.from('students_m33201_1_2569').select('*');
-        if (room !== 'all') {
-            studentsQuery = studentsQuery.eq('room', room);
-        }
-        studentsQuery = studentsQuery.order('room', { ascending: true }).order('room_num', { ascending: true });
-        
-        const { data: studentsData, error: err1 } = await studentsQuery;
+        if (room !== 'all') studentsQuery = studentsQuery.eq('room', room);
+        const { data: rawStudents, error: err1 } = await studentsQuery;
         if (err1) throw err1;
 
-        // 2. ดึงข้อมูลการเข้าเรียน
+        // จัดเรียงแบบชัวร์ 100% ด้วย JavaScript (ห้องน้อยไปมาก -> เลขที่น้อยไปมาก)
+        const studentsData = rawStudents.sort((a, b) => {
+            const roomA = parseInt(a.room) || 0;
+            const roomB = parseInt(b.room) || 0;
+            if (roomA !== roomB) return roomA - roomB;
+            
+            const numA = parseInt(a.room_num) || 999;
+            const numB = parseInt(b.room_num) || 999;
+            return numA - numB;
+        });
+
+        // 2. ดึงข้อมูลการเช็คชื่อ
         let attQuery = supabaseClient.from('m33201_1_2569_attendance_records').select('*');
         if (room !== 'all') attQuery = attQuery.eq('room_number', room);
         const { data: attData, error: err2 } = await attQuery;
@@ -59,25 +65,25 @@ async function loadDashboard() {
         // ประมวลผลข้อมูล (Data Processing)
         // ==========================================
         
-        // สร้าง Map เก็บข้อมูลนักเรียนรายบุคคล
         const studentStats = {};
         studentsData.forEach(s => {
             studentStats[s.std_id] = {
                 ...s,
-                present: 0,
-                absent: 0,
-                leave: 0,
-                late: 0,
-                totalScore: 0
+                present: 0, absent: 0, leave: 0, late: 0,
+                hw: 0, quiz: 0, bonus: 0, totalScore: 0
             };
         });
 
-        // นับสถิติการเข้าเรียน
+        // ตัวแปรนับจำนวนครั้งที่เช็คชื่อ (นับจาก วันที่ + คาบ + ห้อง ที่ไม่ซ้ำกัน)
+        const uniqueCheckSessions = new Set();
         let totalAttendanceRecords = 0;
         let totalPresent = 0;
         let totalAbsent = 0;
 
         attData.forEach(record => {
+            // สร้าง Key เพื่อเช็คว่าคาบนี้เคยนับหรือยัง เช่น "2026-05-25_คาบ1_ห้อง3"
+            uniqueCheckSessions.add(`${record.record_date}_${record.period_number}_${record.room_number}`);
+
             if (studentStats[record.std_id]) {
                 totalAttendanceRecords++;
                 if (record.status === 'มา') {
@@ -94,24 +100,32 @@ async function loadDashboard() {
             }
         });
 
-        // รวมสถิติคะแนน
         let sumAllScores = 0;
         scoreData.forEach(record => {
             if (studentStats[record.std_id]) {
                 const s = parseFloat(record.score) || 0;
                 studentStats[record.std_id].totalScore += s;
                 sumAllScores += s;
+
+                // แยกคะแนนตามประเภท
+                if (record.task_type === 'Homework') {
+                    studentStats[record.std_id].hw += s;
+                } else if (record.task_type === 'Quiz') {
+                    studentStats[record.std_id].quiz += s;
+                } else if (record.task_type === 'Bonus') {
+                    studentStats[record.std_id].bonus += s;
+                }
             }
         });
 
         // ==========================================
-        // อัปเดต Summary Cards
+        // อัปเดตการ์ดสรุปผล
         // ==========================================
         const totalStudents = studentsData.length;
         document.getElementById('totalStudents').innerText = totalStudents;
+        document.getElementById('totalChecks').innerText = uniqueCheckSessions.size; // อัปเดตจำนวนครั้ง
         document.getElementById('totalAbsence').innerText = totalAbsent;
         
-        // คำนวณอัตรามาเรียน (มา / (มา+ขาด+ลา+สาย))
         if (totalAttendanceRecords > 0) {
             const rate = ((totalPresent / totalAttendanceRecords) * 100).toFixed(1);
             document.getElementById('attendanceRate').innerText = `${rate}%`;
@@ -119,7 +133,6 @@ async function loadDashboard() {
             document.getElementById('attendanceRate').innerText = `0%`;
         }
 
-        // คำนวณคะแนนเฉลี่ย
         if (totalStudents > 0) {
             const avg = (sumAllScores / totalStudents).toFixed(1);
             document.getElementById('avgScore').innerText = avg;
@@ -127,34 +140,39 @@ async function loadDashboard() {
             document.getElementById('avgScore').innerText = `0`;
         }
 
-        // อัปเดต Subtitle ตาราง
-        document.getElementById('tableSubtitle').innerText = room === 'all' ? 'รวมนักเรียนทั้งหมด' : `เฉพาะนักเรียนห้อง ${room}`;
+        document.getElementById('tableSubtitle').innerText = room === 'all' ? 'รวมนักเรียนทั้งหมดเรียงตามห้องและเลขที่' : `เฉพาะนักเรียนห้อง ${room}`;
 
         // ==========================================
         // สร้างตารางรายบุคคล
         // ==========================================
         if (totalStudents === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" class="text-center p-8 text-slate-500">ไม่พบข้อมูลนักเรียน</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="12" class="text-center p-8 text-slate-500">ไม่พบข้อมูลนักเรียน</td></tr>`;
         } else {
             studentsData.forEach(student => {
                 const stat = studentStats[student.std_id];
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 transition-colors";
                 tr.innerHTML = `
-                    <td class="p-4 text-center font-bold text-slate-500">${stat.room}</td>
-                    <td class="p-4 text-slate-400 text-sm hidden md:table-cell">${stat.std_id}</td>
-                    <td class="p-4 text-slate-700 font-medium">${stat.name}</td>
-                    <td class="p-4 text-center font-semibold text-emerald-600 bg-emerald-50/20">${stat.present}</td>
-                    <td class="p-4 text-center font-semibold ${stat.absent > 0 ? 'text-rose-600' : 'text-slate-300'} bg-rose-50/20">${stat.absent}</td>
-                    <td class="p-4 text-center font-semibold ${stat.leave > 0 ? 'text-amber-600' : 'text-slate-300'} bg-amber-50/20">${stat.leave}</td>
-                    <td class="p-4 text-center font-semibold ${stat.late > 0 ? 'text-orange-600' : 'text-slate-300'} bg-orange-50/20">${stat.late}</td>
-                    <td class="p-4 text-center font-bold text-blue-600 bg-blue-50/20">${stat.totalScore.toFixed(1)}</td>
+                    <td class="p-3 text-center font-bold text-slate-500">${stat.room}</td>
+                    <td class="p-3 text-center font-bold text-slate-700">${stat.room_num || '-'}</td>
+                    <td class="p-3 text-slate-400 text-xs hidden md:table-cell">${stat.std_id}</td>
+                    <td class="p-3 text-slate-700 font-medium">${stat.name}</td>
+                    
+                    <td class="p-3 text-center font-semibold text-emerald-600 bg-emerald-50/40">${stat.present}</td>
+                    <td class="p-3 text-center font-semibold ${stat.absent > 0 ? 'text-rose-600' : 'text-slate-300'} bg-rose-50/40">${stat.absent}</td>
+                    <td class="p-3 text-center font-semibold ${stat.leave > 0 ? 'text-amber-600' : 'text-slate-300'} bg-amber-50/40">${stat.leave}</td>
+                    <td class="p-3 text-center font-semibold ${stat.late > 0 ? 'text-orange-600' : 'text-slate-300'} bg-orange-50/40">${stat.late}</td>
+                    
+                    <td class="p-3 text-center font-medium text-indigo-600 bg-indigo-50/40">${stat.hw > 0 ? stat.hw : '-'}</td>
+                    <td class="p-3 text-center font-medium text-purple-600 bg-purple-50/40">${stat.quiz > 0 ? stat.quiz : '-'}</td>
+                    <td class="p-3 text-center font-medium text-pink-600 bg-pink-50/40">${stat.bonus > 0 ? stat.bonus : '-'}</td>
+                    <td class="p-3 text-center font-bold text-blue-600 bg-blue-100/50">${stat.totalScore.toFixed(1)}</td>
                 `;
                 tbody.appendChild(tr);
             });
+            btnExcel.classList.remove('hidden'); // โชว์ปุ่ม Excel เมื่อมีข้อมูล
         }
 
-        // แสดงผล
         loadingState.classList.add('hidden');
         dashboardContent.classList.remove('hidden');
 
@@ -162,4 +180,23 @@ async function loadDashboard() {
         console.error('Error loading dashboard:', error);
         loadingState.innerHTML = `<span class="text-rose-500">❌ เกิดข้อผิดพลาด: ${error.message}</span>`;
     }
+}
+
+// ==========================================
+// ฟังก์ชันส่งออกตารางเป็นไฟล์ Excel
+// ==========================================
+function exportToExcel() {
+    const room = document.getElementById('roomSelect').value;
+    const roomText = room === 'all' ? 'ทุกห้อง' : `ห้อง${room}`;
+    
+    // ตั้งชื่อไฟล์พร้อมวันที่ปัจจุบัน
+    const dateStr = new Date().toISOString().split('T')[0];
+    const fileName = `สรุปข้อมูล_ม33201_${roomText}_${dateStr}.xlsx`;
+
+    // อ้างอิงถึง Table ใน HTML และสร้างไฟล์
+    const tableElement = document.getElementById("dataTable");
+    const workbook = XLSX.utils.table_to_book(tableElement, { sheet: "สรุปคะแนนและเวลาเรียน" });
+    
+    // ดาวน์โหลด
+    XLSX.writeFile(workbook, fileName);
 }
