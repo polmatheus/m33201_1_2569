@@ -1,13 +1,19 @@
 // app.js
 
-// 1. Initializing Supabase using config.js variables
+// 1. Initializing Supabase
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentStudents = [];
 let currentMode = 'attendance'; // 'attendance' or 'score'
 
-// Set default date to today
-document.getElementById('dateSelect').valueAsDate = new Date();
+// ✅ แก้ไข: รอให้ HTML โหลดเสร็จก่อน แล้วค่อยใส่วันที่ปัจจุบัน เพื่อป้องกัน Error ตัวแปรเป็น null
+document.addEventListener("DOMContentLoaded", () => {
+    const dateInput = document.getElementById('dateSelect');
+    if (dateInput) {
+        // ดึงวันที่ปัจจุบันในรูปแบบ YYYY-MM-DD
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
+});
 
 // ==========================================
 // 2. ฟังก์ชันสลับโหมด (เช็คชื่อ vs บันทึกคะแนน)
@@ -81,7 +87,7 @@ async function loadStudents() {
     
     try {
         const { data, error } = await supabaseClient
-            .from('students_m33201_1_2569') // ชื่อตารางรายชื่อนักเรียนของคุณ
+            .from('students_m33201_1_2569') 
             .select('*')
             .eq('room', room)
             .order('room_num', { ascending: true });
@@ -97,13 +103,12 @@ async function loadStudents() {
             return;
         }
 
-        // โชว์ปุ่ม Action Bar และ ปุ่มเลือกทั้งหมด
+        // โชว์ปุ่ม Action Bar
         document.getElementById('action-bar').classList.remove('translate-y-full');
         document.getElementById('btnSelectAll').style.display = 'block';
         document.getElementById('statusMsg').textContent = 'พร้อมบันทึกข้อมูล';
         document.getElementById('statusMsg').className = 'text-sm font-semibold text-gray-500 truncate flex-1';
 
-        // สร้าง Header ตามโหมด
         if (currentMode === 'attendance') {
             thead.innerHTML = `
                 <tr>
@@ -124,7 +129,6 @@ async function loadStudents() {
             `;
         }
 
-        // สร้าง Body ตามโหมด
         currentStudents.forEach((student, index) => {
             const tr = document.createElement('tr');
             tr.className = "hover:bg-blue-50 transition-colors";
@@ -171,7 +175,7 @@ async function loadStudents() {
 }
 
 // ==========================================
-// 5. ฟังก์ชันบันทึกข้อมูล (แยกตรรกะตามโหมด)
+// 5. ฟังก์ชันบันทึกข้อมูล
 // ==========================================
 async function saveData() {
     const dateStr = document.getElementById('dateSelect').value;
@@ -185,7 +189,6 @@ async function saveData() {
     const recordsToInsert = [];
 
     if (currentMode === 'attendance') {
-        // ประมวลผลข้อมูลเช็คชื่อ
         currentStudents.forEach((student, index) => {
             const selectedStatus = document.querySelector(`input[name="status_${index}"]:checked`);
             if (selectedStatus) {
@@ -207,15 +210,12 @@ async function saveData() {
         }
 
         try {
-            // สมมติว่าสร้างตารางใหม่ชื่อ attendance_records ไว้ใน Supabase
             const { data, error } = await supabaseClient
                 .from('attendance_records') 
                 .insert(recordsToInsert);
 
             if (error) throw error;
             successSave(`บันทึกเช็คชื่อสำเร็จ (${recordsToInsert.length} คน)`);
-
-            // เคลียร์ค่าตัวเลือก
             document.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
 
         } catch (error) {
@@ -223,7 +223,6 @@ async function saveData() {
         }
 
     } else if (currentMode === 'score') {
-        // ประมวลผลข้อมูลบันทึกคะแนน
         const type = document.getElementById('typeSelect').value;
         const topic = document.getElementById('topicInput').value;
 
@@ -266,8 +265,6 @@ async function saveData() {
 
             if (error) throw error;
             successSave(`บันทึกคะแนนสำเร็จ (${recordsToInsert.length} คน)`);
-
-            // เคลียร์ค่าช่องคะแนน
             document.querySelectorAll('.student-score').forEach(input => input.value = '');
 
         } catch (error) {
@@ -276,7 +273,6 @@ async function saveData() {
     }
 }
 
-// Helper Functions
 function successSave(message) {
     const statusMsg = document.getElementById('statusMsg');
     statusMsg.textContent = message;
