@@ -217,7 +217,7 @@ async function saveData() {
 
         try {
             const { data, error } = await supabaseClient
-                .from('attendance_records') 
+                .from('m33201_1_2569_attendance_records') // ✅ เปลี่ยนเป็นชื่อใหม่
                 .insert(recordsToInsert);
 
             if (error) throw error;
