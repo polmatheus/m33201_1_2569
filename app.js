@@ -7,7 +7,7 @@ let currentMode = 'attendance';
 function initSupabase() {
     try {
         if (typeof SUPABASE_URL === 'undefined' || typeof SUPABASE_KEY === 'undefined') {
-            alert("❌ ไม่พบไฟล์ config.js");
+            alert("❌ ไม่พบไฟล์ config.js หรือยังไม่ได้ตั้งค่าตัวแปร");
             return false;
         }
         if (!supabaseClient) {
@@ -40,24 +40,28 @@ function setMode(mode) {
     const topicField = document.getElementById('topicFieldContainer');
     const btnSelectAll = document.getElementById('btnSelectAll');
     
-    document.getElementById('tableContainer').style.display = 'none';
-    document.getElementById('action-bar').classList.add('translate-y-full');
-    btnSelectAll.style.display = 'none';
+    if (document.getElementById('tableContainer')) document.getElementById('tableContainer').style.display = 'none';
+    if (document.getElementById('action-bar')) document.getElementById('action-bar').classList.add('translate-y-full');
+    if (btnSelectAll) btnSelectAll.style.display = 'none';
 
     if (mode === 'attendance') {
-        tabAtt.className = 'tab-active flex-1 py-3 text-sm md:text-base transition-all duration-200';
-        tabScore.className = 'tab-inactive flex-1 py-3 text-sm md:text-base transition-all duration-200 hover:text-slate-700';
-        scoreFields.classList.add('hidden');
-        topicField.classList.add('hidden');
-        btnSelectAll.innerHTML = '✅ มาเรียนทุกคน';
-        btnSelectAll.className = 'flex-1 bg-white text-slate-700 h-14 rounded-2xl font-semibold hover:bg-slate-50 active:bg-slate-100 transition-all border border-slate-200 shadow-sm text-base';
+        if (tabAtt) tabAtt.className = 'tab-active flex-1 py-3 text-sm md:text-base transition-all duration-200';
+        if (tabScore) tabScore.className = 'tab-inactive flex-1 py-3 text-sm md:text-base transition-all duration-200 hover:text-slate-700';
+        if (scoreFields) scoreFields.classList.add('hidden');
+        if (topicField) topicField.classList.add('hidden');
+        if (btnSelectAll) {
+            btnSelectAll.innerHTML = '✅ มาเรียนทุกคน';
+            btnSelectAll.className = 'flex-1 bg-white text-slate-700 h-14 rounded-2xl font-semibold hover:bg-slate-50 active:bg-slate-100 transition-all border border-slate-200 shadow-sm text-base';
+        }
     } else {
-        tabScore.className = 'tab-active flex-1 py-3 text-sm md:text-base transition-all duration-200';
-        tabAtt.className = 'tab-inactive flex-1 py-3 text-sm md:text-base transition-all duration-200 hover:text-slate-700';
-        scoreFields.classList.remove('hidden');
-        topicField.classList.remove('hidden');
-        btnSelectAll.innerHTML = '⚡️ กรอกคะแนนเดียวกันทุกคน';
-        btnSelectAll.className = 'flex-1 bg-indigo-50 text-indigo-700 h-14 rounded-2xl font-semibold hover:bg-indigo-100 active:bg-indigo-200 transition-all border border-indigo-200 text-base';
+        if (tabScore) tabScore.className = 'tab-active flex-1 py-3 text-sm md:text-base transition-all duration-200';
+        if (tabAtt) tabAtt.className = 'tab-inactive flex-1 py-3 text-sm md:text-base transition-all duration-200 hover:text-slate-700';
+        if (scoreFields) scoreFields.classList.remove('hidden');
+        if (topicField) topicField.classList.remove('hidden');
+        if (btnSelectAll) {
+            btnSelectAll.innerHTML = '⚡️ กรอกคะแนนเดียวกันทุกคน';
+            btnSelectAll.className = 'flex-1 bg-indigo-50 text-indigo-700 h-14 rounded-2xl font-semibold hover:bg-indigo-100 active:bg-indigo-200 transition-all border border-indigo-200 text-base';
+        }
     }
 }
 
@@ -73,38 +77,57 @@ function actionSelectAll() {
     }
 }
 
-// โหลดรายชื่อ
-// ==========================================
-// ฟังก์ชันโหลดรายชื่อ และตรวจสอบการลาอัตโนมัติ
-// ==========================================
 // ==========================================
 // 1. ฟังก์ชันโหลดรายชื่อ และดึงข้อมูลเดิมมาแก้ไข (Smart Load)
 // ==========================================
 async function loadStudents() {
     if (!initSupabase()) return;
 
-    const room = document.getElementById('roomSelect').value;
-    const period = document.getElementById('periodSelect').value;
-    const date = document.getElementById('dateSelect').value;
+    const roomEl = document.getElementById('roomSelect');
+    const periodEl = document.getElementById('periodSelect');
+    const dateEl = document.getElementById('dateSelect');
+
+    if (!roomEl || !periodEl || !dateEl) {
+        alert("⚠️ โครงสร้าง HTML ไม่สมบูรณ์ ไม่พบตัวเลือกห้อง คาบ หรือวันที่");
+        return;
+    }
+
+    const room = roomEl.value;
+    const period = periodEl.value;
+    const date = dateEl.value;
 
     if (!room || !period || !date) {
         alert("⚠️ กรุณาเลือก วันที่, ห้องเรียน และ คาบเรียน ให้ครบถ้วน");
         return;
     }
 
-    // กรณีเป็นโหมดให้คะแนน เช็คหัวข้อด้วย
-    const taskType = document.getElementById('taskType').value;
-    const topic = document.getElementById('topicInput').value.trim();
-    if (currentMode === 'score' && !topic) {
-        alert("⚠️ กรุณาระบุชื่อชิ้นงาน/หัวข้อคะแนน");
-        return;
+    // แก้ไขจุดบกพร่อง: ดึงค่าคะแนนเฉพาะเมื่ออยู่ในโหมดให้คะแนนเท่านั้น ป้องกันโค้ดพังในโหมดเช็คชื่อ
+    let taskType = '';
+    let topic = '';
+    if (currentMode === 'score') {
+        const taskTypeEl = document.getElementById('taskType');
+        const topicInputEl = document.getElementById('topicInput');
+        
+        if (!taskTypeEl || !topicInputEl) {
+            alert("⚠️ ไม่พบฟิลด์กรอกข้อมูลคะแนนในหน้าเว็บ");
+            return;
+        }
+        
+        taskType = taskTypeEl.value;
+        topic = topicInputEl.value.trim();
+        
+        if (!topic) {
+            alert("⚠️ กรุณาระบุชื่อชิ้นงาน/หัวข้อคะแนน");
+            return;
+        }
     }
 
     const tbody = document.getElementById('studentTableBody');
     const thead = document.getElementById('tableHeader');
+    if (!tbody || !thead) return;
     
     tbody.innerHTML = '<tr><td colspan="5" class="text-center p-8 text-slate-500 font-medium animate-pulse">กำลังโหลดข้อมูล...</td></tr>';
-    document.getElementById('tableContainer').style.display = 'block';
+    if (document.getElementById('tableContainer')) document.getElementById('tableContainer').style.display = 'block';
     
     try {
         // 1. ดึงรายชื่อนักเรียน
@@ -125,7 +148,7 @@ async function loadStudents() {
         const leaveMap = {};
         if (leavesData) leavesData.forEach(leave => leaveMap[leave.std_id] = leave.leave_type);
 
-        // 3. ⭐️ ดึงข้อมูลการเช็คชื่อ หรือ คะแนน (ถ้าเคยบันทึกไว้แล้ว)
+        // 3. ดึงข้อมูลประวัติเดิม (ถ้ามี)
         let existingDataMap = {};
         let isEditing = false;
 
@@ -149,7 +172,7 @@ async function loadStudents() {
                 .eq('room_number', room)
                 .eq('period_number', period)
                 .eq('task_type', taskType)
-                .eq('topic', topic); // ต้องตรงกับหัวข้องานด้วย
+                .eq('topic', topic);
             
             if (existingScore && existingScore.length > 0) {
                 isEditing = true;
@@ -162,34 +185,32 @@ async function loadStudents() {
 
         if (currentStudents.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-red-500 font-medium bg-red-50">ไม่พบรายชื่อนักเรียนห้อง ${room}</td></tr>`;
-            document.getElementById('action-bar').classList.add('translate-y-full');
-            document.getElementById('btnSelectAll').style.display = 'none';
+            if (document.getElementById('action-bar')) document.getElementById('action-bar').classList.add('translate-y-full');
+            if (document.getElementById('btnSelectAll')) document.getElementById('btnSelectAll').style.display = 'none';
             return;
         }
 
-        document.getElementById('action-bar').classList.remove('translate-y-full');
-        document.getElementById('btnSelectAll').style.display = 'block';
+        if (document.getElementById('action-bar')) document.getElementById('action-bar').classList.remove('translate-y-full');
+        if (document.getElementById('btnSelectAll')) document.getElementById('btnSelectAll').style.display = 'block';
         
-        // แจ้งเตือนครูว่านี่คือการบันทึกใหม่ หรือ แก้ไขข้อมูลเดิม
         if (isEditing) {
             updateStatus('✏️ พบข้อมูลเดิม (เข้าสู่โหมดแก้ไข)', 'amber');
         } else {
             updateStatus('พร้อมบันทึกข้อมูลใหม่', 'slate');
         }
 
-        // สร้าง Header
+        // สร้างหัวตาราง
         if (currentMode === 'attendance') {
             thead.innerHTML = `<tr><th class="p-4 font-semibold text-center w-12 rounded-tl-2xl">ที่</th><th class="p-4 font-semibold w-20 hidden md:table-cell">รหัส</th><th class="p-4 font-semibold">ชื่อ - นามสกุล</th><th class="p-4 font-semibold text-center min-w-[240px] rounded-tr-2xl">สถานะการเข้าเรียน</th></tr>`;
         } else {
             thead.innerHTML = `<tr><th class="p-4 font-semibold text-center w-12 rounded-tl-2xl">ที่</th><th class="p-4 font-semibold w-20 hidden md:table-cell">รหัส</th><th class="p-4 font-semibold">ชื่อ - นามสกุล</th><th class="p-4 font-semibold text-center w-32 rounded-tr-2xl">คะแนน</th></tr>`;
         }
 
-        // แสดงผลตารางรายบุคคล
+        // แสดงแถวนักเรียนแต่ละคน
         currentStudents.forEach((student, index) => {
             const tr = document.createElement('tr');
             tr.className = "hover:bg-slate-50 transition-colors duration-150 group";
             
-            // เช็คว่ามีข้อมูลเดิมไหม ถ้ามีให้เก็บ ID ไว้ในบรรทัดนี้ เพื่อใช้ตอนอัปเดต
             const existingRecord = existingDataMap[student.std_id];
             if (existingRecord) {
                 tr.setAttribute('data-record-id', existingRecord.id);
@@ -200,7 +221,6 @@ async function loadStudents() {
             let actionHtml = '';
 
             if (currentMode === 'attendance') {
-                // เช็คสถานะ: ถ้ามีข้อมูลเก่าให้ยึดของเก่า ถ้าไม่มีให้เช็คว่าลาไหม
                 let selectedStatus = existingRecord ? existingRecord.status : (hasLeave ? 'ลา' : '');
                 
                 const statuses = [
@@ -212,7 +232,7 @@ async function loadStudents() {
 
                 let radios = statuses.map(s => `
                     <label class="cursor-pointer flex flex-col items-center group/radio">
-                        <input type="radio" name="status_${index}" value="${s.val}" class="w-6 h-6 mb-1 cursor-pointer accent-${s.color}-500" ${selectedStatus === s.val ? 'checked' : ''}>
+                        <input type="radio" name="status_${index}" value="${s.val}" class="w-6 h-6 mb-1 cursor-pointer accent-${s.color}-500 ${s.val === 'มา' ? 'radio-present' : ''}" ${selectedStatus === s.val ? 'checked' : ''}>
                         <span class="text-xs font-medium text-slate-400 group-hover/radio:text-${s.color}-600 transition-colors">${s.val}</span>
                     </label>
                 `).join('');
@@ -247,30 +267,38 @@ async function loadStudents() {
 // 2. ฟังก์ชันบันทึกข้อมูล (รองรับการบันทึกใหม่ และแก้ไขของเดิม)
 // ==========================================
 async function saveData() {
+    if (!initSupabase()) return;
+
     const room = document.getElementById('roomSelect').value;
     const period = document.getElementById('periodSelect').value;
     const date = document.getElementById('dateSelect').value;
-    const taskType = document.getElementById('taskType').value;
-    const topic = document.getElementById('topicInput').value.trim();
-
+    
     if (!room || !period || !date) {
         alert("กรุณาเลือกข้อมูลให้ครบถ้วนก่อนบันทึก");
         return;
     }
 
-    if (currentMode === 'score' && !topic) {
-        alert("กรุณาระบุหัวข้อ/ชิ้นงานก่อนบันทึก");
-        return;
+    let taskType = '';
+    let topic = '';
+    if (currentMode === 'score') {
+        taskType = document.getElementById('taskType').value;
+        topic = document.getElementById('topicInput').value.trim();
+        if (!topic) {
+            alert("กรุณาระบุหัวข้อ/ชิ้นงานก่อนบันทึก");
+            return;
+        }
     }
 
     const payload = [];
     const tbody = document.getElementById('studentTableBody');
+    if (!tbody) return;
     let hasMissingData = false;
 
     for (let i = 0; i < currentStudents.length; i++) {
         const tr = tbody.children[i];
+        if (!tr) continue;
         const student = currentStudents[i];
-        const recordId = tr.getAttribute('data-record-id'); // ดึง ID เดิมถ้ามี (เพื่อแก้ไข)
+        const recordId = tr.getAttribute('data-record-id'); 
 
         if (currentMode === 'attendance') {
             const checkedRadio = document.querySelector(`input[name="status_${i}"]:checked`);
@@ -287,12 +315,12 @@ async function saveData() {
                 student_name: student.name,
                 status: checkedRadio.value
             };
-            if (recordId) obj.id = parseInt(recordId); // ถ้ามี ID เดิม ให้ส่งไป Update
+            if (recordId) obj.id = parseInt(recordId); 
             payload.push(obj);
 
         } else {
-            const scoreInput = document.querySelector(`.student-score[data-index="${i}"]`).value;
-            if (scoreInput !== '') {
+            const scoreInputEl = document.querySelector(`.student-score[data-index="${i}"]`);
+            if (scoreInputEl && scoreInputEl.value !== '') {
                 let obj = {
                     record_date: date,
                     room_number: room,
@@ -301,9 +329,9 @@ async function saveData() {
                     topic: topic,
                     std_id: student.std_id,
                     student_name: student.name,
-                    score: parseFloat(scoreInput)
+                    score: parseFloat(scoreInputEl.value)
                 };
-                if (recordId) obj.id = parseInt(recordId); // ถ้ามี ID เดิม ให้ส่งไป Update
+                if (recordId) obj.id = parseInt(recordId); 
                 payload.push(obj);
             }
         }
@@ -324,8 +352,6 @@ async function saveData() {
 
     try {
         const tableName = currentMode === 'attendance' ? 'm33201_1_2569_attendance_records' : 'students_m33201_1_2569_records';
-        
-        // ใช้คำสั่ง upsert แทน insert (ถ้าระบบเจอ ID เดิม มันจะแก้ของเดิมให้ ไม่สร้างซ้ำ)
         const { error } = await supabaseClient.from(tableName).upsert(payload);
 
         if (error) throw error;
@@ -333,7 +359,6 @@ async function saveData() {
         updateStatus('✅ บันทึก/แก้ไขข้อมูลเรียบร้อยแล้ว!', 'emerald');
         setTimeout(() => {
             updateStatus('พร้อมทำงาน', 'slate');
-            // โหลดข้อมูลใหม่เพื่อรีเฟรช ID ล่าสุด
             loadStudents(); 
         }, 2000);
 
@@ -348,18 +373,18 @@ function updateStatus(message, colorClass) {
     const statusMsg = document.getElementById('statusMsg');
     const statusDot = document.getElementById('statusDot');
     
-    statusMsg.textContent = message;
-    
-    // Reset classes
-    statusMsg.className = `text-sm md:text-base font-semibold truncate text-${colorClass}-600`;
-    statusDot.className = `w-2 h-2 rounded-full bg-${colorClass}-500 ${colorClass === 'blue' ? 'animate-pulse' : ''}`;
+    if (statusMsg) {
+        statusMsg.textContent = message;
+        statusMsg.className = `text-sm md:text-base font-semibold truncate text-${colorClass}-600`;
+    }
+    if (statusDot) {
+        statusDot.className = `w-2 h-2 rounded-full bg-${colorClass}-500 ${colorClass === 'blue' ? 'animate-pulse' : ''}`;
+    }
 }
 
 function successSave(message) {
     updateStatus(message, 'emerald');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-    // เด้งกลับไปสถานะปกติหลัง 3 วิ
     setTimeout(() => {
         updateStatus('พร้อมบันทึกข้อมูล', 'slate');
     }, 3000);
