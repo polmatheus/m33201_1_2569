@@ -4,9 +4,6 @@ let supabaseClient = null;
 let currentStudents = [];
 let currentMode = 'attendance';
 
-// ==========================================
-// ตั้งค่าระบบและการแสดงผลเบื้องต้น
-// ==========================================
 function initSupabase() {
     try {
         if (typeof SUPABASE_URL === 'undefined' || typeof SUPABASE_KEY === 'undefined') {
@@ -27,7 +24,6 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
         const dateInput = document.getElementById('dateSelect');
         if (dateInput) {
-            // ตั้งค่าวางวันที่ปัจจุบันให้อัตโนมัติเมื่อเปิดหน้าเว็บ
             dateInput.value = new Date().toISOString().split('T')[0];
         }
     } catch(e) {
@@ -35,7 +31,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
-// สลับโหมดการทำงาน (เช็คชื่อ <-> บันทึกคะแนน)
 function setMode(mode) {
     currentMode = mode;
     const tabAtt = document.getElementById('tabAttendance');
@@ -44,7 +39,6 @@ function setMode(mode) {
     const topicField = document.getElementById('topicFieldContainer');
     const btnSelectAll = document.getElementById('btnSelectAll');
     
-    // ซ่อนตารางไว้ก่อนจนกว่าจะกดโหลดใหม่
     if (document.getElementById('tableContainer')) document.getElementById('tableContainer').style.display = 'none';
     if (document.getElementById('action-bar')) document.getElementById('action-bar').classList.add('translate-y-full');
     if (btnSelectAll) btnSelectAll.style.display = 'none';
@@ -70,7 +64,6 @@ function setMode(mode) {
     }
 }
 
-// ปุ่มทางลัด (มาทุกคน / ให้คะแนนเท่ากันทุกคน)
 function actionSelectAll() {
     if (currentMode === 'attendance') {
         document.querySelectorAll('.radio-present').forEach(radio => radio.checked = true);
@@ -83,7 +76,7 @@ function actionSelectAll() {
 }
 
 // ==========================================
-// 1. ฟังก์ชันโหลดรายชื่อ และดึงข้อมูลเดิมมาแก้ไข (Smart Load)
+// 1. ฟังก์ชันดึงข้อมูลแบบปลอดภัย 100% (กันโค้ดพัง)
 // ==========================================
 async function loadStudents() {
     if (!initSupabase()) return;
@@ -93,34 +86,31 @@ async function loadStudents() {
     const dateEl = document.getElementById('dateSelect');
 
     if (!roomEl || !periodEl || !dateEl) {
-        alert("⚠️ โครงสร้าง HTML ไม่สมบูรณ์ ไม่พบตัวเลือกห้อง คาบ หรือวันที่");
+        alert("⚠️ โครงสร้าง HTML ไม่สมบูรณ์");
         return;
     }
 
-    const room = roomEl.value;
-    const period = periodEl.value;
+    // ⭐️ ไม้ตายที่ 1: สกัดเอาเฉพาะ "ตัวเลข" ออกมา เพื่อกันคำว่า "ห้อง" หรือ "คาบ" ไปทำให้ฐานข้อมูล Error
+    const roomVal = roomEl.value.replace(/[^0-9]/g, '');
+    const periodVal = periodEl.value.replace(/[^0-9]/g, '');
     const date = dateEl.value;
 
-    if (!room || !period || !date) {
+    if (!roomVal || !periodVal || !date) {
         alert("⚠️ กรุณาเลือก วันที่, ห้องเรียน และ คาบเรียน ให้ครบถ้วน");
         return;
     }
 
     let taskType = '';
     let topic = '';
-    // ตรวจสอบข้อมูลเฉพาะตอนอยู่โหมดให้คะแนน
     if (currentMode === 'score') {
         const taskTypeEl = document.getElementById('taskType');
         const topicInputEl = document.getElementById('topicInput');
-        
         if (!taskTypeEl || !topicInputEl) {
-            alert("⚠️ ไม่พบฟิลด์กรอกข้อมูลคะแนนในหน้าเว็บ");
+            alert("⚠️ ไม่พบฟิลด์กรอกข้อมูลคะแนน");
             return;
         }
-        
         taskType = taskTypeEl.value;
         topic = topicInputEl.value.trim();
-        
         if (!topic) {
             alert("⚠️ กรุณาระบุชื่อชิ้นงาน/หัวข้อคะแนน");
             return;
@@ -135,91 +125,93 @@ async function loadStudents() {
     if (document.getElementById('tableContainer')) document.getElementById('tableContainer').style.display = 'block';
     
     try {
-        // [1] ดึงรายชื่อนักเรียนจากฐานข้อมูลหลัก
-        const { data: studentsData, error: studentsError } = await supabaseClient
+        // ⭐️ ไม้ตายที่ 2: ดึงข้อมูลมาทั้งหมดก่อน แล้วกรองด้วย JS เพื่อความแม่นยำ 100%
+        const { data: allStudents, error: studentsError } = await supabaseClient
             .from('students_m33201_1_2569') 
             .select('*')
-            .eq('room', room)
             .order('room_num', { ascending: true });
             
         if (studentsError) throw studentsError;
 
-        // [2] ดึงประวัติการลาของห้องนี้ ในวันนี้
-        const { data: leavesData } = await supabaseClient
-            .from('m33201_1_2569_student_leaves')
-            .select('std_id, leave_type')
-            .eq('leave_date', date)
-            .eq('room_number', room);
+        // กรองเอาเฉพาะคนที่อยู่ห้องที่เลือก
+        currentStudents = allStudents.filter(s => {
+            if (!s.room) return false;
+            return s.room.toString().replace(/[^0-9]/g, '') === roomVal;
+        });
 
-        const leaveMap = {};
-        if (leavesData) leavesData.forEach(leave => leaveMap[leave.std_id] = leave.leave_type);
-
-        // [3] ดึงข้อมูลการบันทึกเดิม (ถ้าเคยเช็คชื่อหรือให้คะแนนหัวข้อนี้ไปแล้ว)
-        let existingDataMap = {};
-        let isEditing = false;
-
-        if (currentMode === 'attendance') {
-            const { data: existingAtt } = await supabaseClient
-                .from('m33201_1_2569_attendance_records')
-                .select('*')
-                .eq('record_date', date)
-                .eq('room_number', room)
-                .eq('period_number', period);
-            
-            if (existingAtt && existingAtt.length > 0) {
-                isEditing = true;
-                existingAtt.forEach(r => existingDataMap[r.std_id] = r);
-            }
-        } else {
-            const { data: existingScore } = await supabaseClient
-                .from('students_m33201_1_2569_records')
-                .select('*')
-                .eq('record_date', date)
-                .eq('room_number', room)
-                .eq('period_number', period)
-                .eq('task_type', taskType)
-                .eq('topic', topic);
-            
-            if (existingScore && existingScore.length > 0) {
-                isEditing = true;
-                existingScore.forEach(r => existingDataMap[r.std_id] = r);
-            }
-        }
-
-        currentStudents = studentsData;
-        tbody.innerHTML = '';
-
-        // ถ้าไม่มีนักเรียนในห้องที่เลือก
         if (currentStudents.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-red-500 font-medium bg-red-50">ไม่พบรายชื่อนักเรียนห้อง ${room}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center p-8 text-red-500 font-medium bg-red-50">ไม่พบรายชื่อนักเรียนห้อง ${roomVal}</td></tr>`;
             if (document.getElementById('action-bar')) document.getElementById('action-bar').classList.add('translate-y-full');
             if (document.getElementById('btnSelectAll')) document.getElementById('btnSelectAll').style.display = 'none';
             return;
         }
 
+        // ดึงการลา
+        const { data: allLeaves } = await supabaseClient
+            .from('m33201_1_2569_student_leaves')
+            .select('std_id, leave_type, room_number')
+            .eq('leave_date', date);
+
+        const leaveMap = {};
+        if (allLeaves) {
+            allLeaves.filter(l => l.room_number && l.room_number.toString().replace(/[^0-9]/g, '') === roomVal)
+                     .forEach(leave => leaveMap[leave.std_id] = leave.leave_type);
+        }
+
+        // ดึงประวัติเก่ามาโชว์ 
+        let existingDataMap = {};
+        let isEditing = false;
+
+        if (currentMode === 'attendance') {
+            const { data: allAtt } = await supabaseClient
+                .from('m33201_1_2569_attendance_records')
+                .select('*')
+                .eq('record_date', date);
+            
+            if (allAtt) {
+                const filteredAtt = allAtt.filter(r => r.room_number.toString().replace(/[^0-9]/g, '') === roomVal && r.period_number.toString() === periodVal);
+                if (filteredAtt.length > 0) {
+                    isEditing = true;
+                    filteredAtt.forEach(r => existingDataMap[r.std_id] = r);
+                }
+            }
+        } else {
+            const { data: allScores } = await supabaseClient
+                .from('students_m33201_1_2569_records')
+                .select('*')
+                .eq('record_date', date)
+                .eq('task_type', taskType)
+                .eq('topic', topic);
+            
+            if (allScores) {
+                const filteredScores = allScores.filter(r => r.room_number.toString().replace(/[^0-9]/g, '') === roomVal && r.period_number.toString() === periodVal);
+                if (filteredScores.length > 0) {
+                    isEditing = true;
+                    filteredScores.forEach(r => existingDataMap[r.std_id] = r);
+                }
+            }
+        }
+
+        tbody.innerHTML = '';
         if (document.getElementById('action-bar')) document.getElementById('action-bar').classList.remove('translate-y-full');
         if (document.getElementById('btnSelectAll')) document.getElementById('btnSelectAll').style.display = 'block';
         
-        // แจ้งเตือนครูว่าเข้าสู่โหมดแก้ไขหรือเริ่มใหม่
         if (isEditing) {
             updateStatus('✏️ พบข้อมูลเดิม (เข้าสู่โหมดแก้ไข)', 'amber');
         } else {
             updateStatus('พร้อมบันทึกข้อมูลใหม่', 'slate');
         }
 
-        // จัดการ Header ตาราง
         if (currentMode === 'attendance') {
             thead.innerHTML = `<tr><th class="p-4 font-semibold text-center w-12 rounded-tl-2xl">ที่</th><th class="p-4 font-semibold w-20 hidden md:table-cell">รหัส</th><th class="p-4 font-semibold">ชื่อ - นามสกุล</th><th class="p-4 font-semibold text-center min-w-[240px] rounded-tr-2xl">สถานะการเข้าเรียน</th></tr>`;
         } else {
             thead.innerHTML = `<tr><th class="p-4 font-semibold text-center w-12 rounded-tl-2xl">ที่</th><th class="p-4 font-semibold w-20 hidden md:table-cell">รหัส</th><th class="p-4 font-semibold">ชื่อ - นามสกุล</th><th class="p-4 font-semibold text-center w-32 rounded-tr-2xl">คะแนน</th></tr>`;
         }
 
-        // สร้างรายการนักเรียนทีละบรรทัด
         currentStudents.forEach((student, index) => {
             const tr = document.createElement('tr');
             tr.className = "hover:bg-slate-50 transition-colors duration-150 group";
             
-            // ⭐️ หัวใจสำคัญ: ฝัง ID เดิมไว้ในแต่ละบรรทัด เพื่อให้ระบบรู้ว่าต้องอัปเดตบรรทัดไหน
             const existingRecord = existingDataMap[student.std_id];
             if (existingRecord) {
                 tr.setAttribute('data-record-id', existingRecord.id);
@@ -230,15 +222,8 @@ async function loadStudents() {
             let actionHtml = '';
 
             if (currentMode === 'attendance') {
-                // เงื่อนไข: ถ้าเคยบันทึก ให้เอาค่าเดิมมาแสดง, ถ้าไม่เคยบันทึก ให้เช็คว่าลาหรือไม่
                 let selectedStatus = existingRecord ? existingRecord.status : (hasLeave ? 'ลา' : '');
-                
-                const statuses = [
-                    { val: 'มา', color: 'emerald' },
-                    { val: 'ขาด', color: 'rose' },
-                    { val: 'ลา', color: 'amber' },
-                    { val: 'สาย', color: 'orange' }
-                ];
+                const statuses = [{ val: 'มา', color: 'emerald' }, { val: 'ขาด', color: 'rose' }, { val: 'ลา', color: 'amber' }, { val: 'สาย', color: 'orange' }];
 
                 let radios = statuses.map(s => `
                     <label class="cursor-pointer flex flex-col items-center group/radio">
@@ -247,20 +232,10 @@ async function loadStudents() {
                     </label>
                 `).join('');
 
-                actionHtml = `
-                    <td class="p-3 align-middle text-center">
-                        <div class="flex justify-center gap-4 md:gap-6">${radios}</div>
-                        ${hasLeave ? `<div class="text-[11px] font-semibold text-amber-600 mt-1.5 bg-amber-50 inline-block px-2 py-0.5 rounded-full border border-amber-200">มีรายการ: ${leaveTypeInfo}</div>` : ''}
-                    </td>
-                `;
+                actionHtml = `<td class="p-3 align-middle text-center"><div class="flex justify-center gap-4 md:gap-6">${radios}</div>${hasLeave ? `<div class="text-[11px] font-semibold text-amber-600 mt-1.5 bg-amber-50 inline-block px-2 py-0.5 rounded-full border border-amber-200">มีรายการ: ${leaveTypeInfo}</div>` : ''}</td>`;
             } else {
                 let scoreVal = existingRecord ? existingRecord.score : '';
-                actionHtml = `
-                    <td class="p-3 align-middle text-center">
-                        <input type="number" inputmode="decimal" class="student-score w-24 mx-auto bg-slate-50 border border-slate-200 rounded-xl h-12 text-center text-lg font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all shadow-inner" value="${scoreVal}" placeholder="-" data-index="${index}">
-                        ${hasLeave ? `<div class="text-[11px] font-semibold text-amber-600 mt-1">มีรายการ: ${leaveTypeInfo}</div>` : ''}
-                    </td>
-                `;
+                actionHtml = `<td class="p-3 align-middle text-center"><input type="number" inputmode="decimal" class="student-score w-24 mx-auto bg-slate-50 border border-slate-200 rounded-xl h-12 text-center text-lg font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all shadow-inner" value="${scoreVal}" placeholder="-" data-index="${index}">${hasLeave ? `<div class="text-[11px] font-semibold text-amber-600 mt-1">มีรายการ: ${leaveTypeInfo}</div>` : ''}</td>`;
             }
 
             tr.innerHTML = `<td class="p-4 text-center text-slate-400 font-medium">${student.room_num || '-'}</td><td class="p-4 text-slate-400 text-sm hidden md:table-cell">${student.std_id}</td><td class="p-4 text-slate-700 font-medium">${student.name}</td>${actionHtml}`;
@@ -274,16 +249,20 @@ async function loadStudents() {
 }
 
 // ==========================================
-// 2. ฟังก์ชันบันทึกข้อมูล (ใช้ Upsert เพื่อให้บันทึกทับของเดิมได้)
+// 2. ฟังก์ชันบันทึกข้อมูลแบบปลอดภัย
 // ==========================================
 async function saveData() {
     if (!initSupabase()) return;
 
-    const room = document.getElementById('roomSelect').value;
-    const period = document.getElementById('periodSelect').value;
-    const date = document.getElementById('dateSelect').value;
+    const roomEl = document.getElementById('roomSelect');
+    const periodEl = document.getElementById('periodSelect');
+    const dateEl = document.getElementById('dateSelect');
+
+    const roomVal = roomEl.value.replace(/[^0-9]/g, '');
+    const periodVal = periodEl.value.replace(/[^0-9]/g, '');
+    const date = dateEl.value;
     
-    if (!room || !period || !date) {
+    if (!roomVal || !periodVal || !date) {
         alert("กรุณาเลือกข้อมูลให้ครบถ้วนก่อนบันทึก");
         return;
     }
@@ -304,29 +283,28 @@ async function saveData() {
     if (!tbody) return;
     let hasMissingData = false;
 
-    // ดึงข้อมูลจากตารางที่แสดงผลอยู่
     for (let i = 0; i < currentStudents.length; i++) {
         const tr = tbody.children[i];
         if (!tr) continue;
         const student = currentStudents[i];
-        const recordId = tr.getAttribute('data-record-id'); // ไอดีของแถวข้อมูลเดิม (ถ้ามี)
+        const recordId = tr.getAttribute('data-record-id'); 
 
         if (currentMode === 'attendance') {
             const checkedRadio = document.querySelector(`input[name="status_${i}"]:checked`);
             if (!checkedRadio) {
                 hasMissingData = true;
-                continue; // ข้ามคนที่ยังไม่ได้เช็คชื่อ
+                continue;
             }
             
             let obj = {
                 record_date: date,
-                room_number: room,
-                period_number: parseInt(period),
+                room_number: roomVal,
+                period_number: parseInt(periodVal),
                 std_id: student.std_id,
                 student_name: student.name,
                 status: checkedRadio.value
             };
-            if (recordId) obj.id = parseInt(recordId); // ใส่ ID กลับเข้าไปเพื่อให้มัน Update
+            if (recordId) obj.id = parseInt(recordId); 
             payload.push(obj);
 
         } else {
@@ -334,28 +312,28 @@ async function saveData() {
             if (scoreInputEl && scoreInputEl.value !== '') {
                 let obj = {
                     record_date: date,
-                    room_number: room,
-                    period_number: parseInt(period),
+                    room_number: roomVal,
+                    period_number: parseInt(periodVal),
                     task_type: taskType,
                     topic: topic,
                     std_id: student.std_id,
                     student_name: student.name,
                     score: parseFloat(scoreInputEl.value)
                 };
-                if (recordId) obj.id = parseInt(recordId); // ใส่ ID กลับเข้าไปเพื่อให้มัน Update
+                if (recordId) obj.id = parseInt(recordId); 
                 payload.push(obj);
             }
         }
     }
 
     if (currentMode === 'attendance' && hasMissingData) {
-        if (!confirm("⚠️ มีนักเรียนบางคนที่คุณยังไม่ได้เลือกสถานะเช็คชื่อ\nคุณต้องการบันทึกเฉพาะคนที่เลือกสถานะไว้แล้วใช่หรือไม่?")) {
+        if (!confirm("⚠️ มีนักเรียนบางคนที่คุณยังไม่ได้เลือกสถานะ\nต้องการบันทึกเฉพาะคนที่เลือกไว้ใช่หรือไม่?")) {
             return;
         }
     }
 
     if (payload.length === 0) {
-        alert("ไม่มีข้อมูลให้บันทึก (คุณยังไม่ได้กรอกคะแนน หรือไม่ได้เช็คชื่อเลย)");
+        alert("ไม่มีข้อมูลให้บันทึก");
         return;
     }
 
@@ -363,8 +341,6 @@ async function saveData() {
 
     try {
         const tableName = currentMode === 'attendance' ? 'm33201_1_2569_attendance_records' : 'students_m33201_1_2569_records';
-        
-        // ⭐️ ใช้ upsert (Update or Insert) แทนคำสั่ง insert ธรรมดา
         const { error } = await supabaseClient.from(tableName).upsert(payload);
 
         if (error) throw error;
@@ -372,7 +348,7 @@ async function saveData() {
         updateStatus('✅ บันทึก/อัปเดตข้อมูลเรียบร้อยแล้ว!', 'emerald');
         setTimeout(() => {
             updateStatus('พร้อมทำงาน', 'slate');
-            loadStudents(); // โหลดข้อมูลอีกครั้งเพื่ออัปเดตแถบสีและการแสดงผล
+            loadStudents(); 
         }, 2000);
 
     } catch (error) {
@@ -382,7 +358,6 @@ async function saveData() {
     }
 }
 
-// ฟังก์ชันตกแต่งข้อความแจ้งเตือนด้านล่าง
 function updateStatus(message, colorClass) {
     const statusMsg = document.getElementById('statusMsg');
     const statusDot = document.getElementById('statusDot');
