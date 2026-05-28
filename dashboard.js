@@ -32,13 +32,13 @@ async function loadDashboard() {
     tbody.innerHTML = '';
 
     try {
-        // 1. ดึงข้อมูลนักเรียนทั้งหมด (ให้ฐานข้อมูลเรียงให้ระดับนึงก่อน)
+        // 1. ดึงข้อมูลนักเรียนทั้งหมด
         let studentsQuery = supabaseClient.from('students_m33201_1_2569').select('*');
         if (room !== 'all') studentsQuery = studentsQuery.eq('room', room);
         const { data: rawStudents, error: err1 } = await studentsQuery;
         if (err1) throw err1;
 
-        // จัดเรียงแบบชัวร์ 100% ด้วย JavaScript (ห้องน้อยไปมาก -> เลขที่น้อยไปมาก)
+        // จัดเรียงแบบชัวร์ 100%
         const studentsData = rawStudents.sort((a, b) => {
             const roomA = parseInt(a.room) || 0;
             const roomB = parseInt(b.room) || 0;
@@ -70,7 +70,7 @@ async function loadDashboard() {
             studentStats[s.std_id] = {
                 ...s,
                 present: 0, absent: 0, leave: 0, late: 0,
-                hw: 0, quiz: 0, bonus: 0, totalScore: 0
+                hw: 0, classroom: 0, quiz: 0, bonus: 0, totalScore: 0 // เพิ่ม classroom: 0 ตรงนี้
             };
         });
 
@@ -104,9 +104,11 @@ async function loadDashboard() {
                 studentStats[record.std_id].totalScore += s;
                 sumAllScores += s;
 
-                // แยกคะแนนตามประเภท
+                // ⭐️ เพิ่มเงื่อนไขคัดกรองคะแนน Classroom ตรงนี้
                 if (record.task_type === 'Homework') {
                     studentStats[record.std_id].hw += s;
+                } else if (record.task_type === 'Classroom') { 
+                    studentStats[record.std_id].classroom += s;
                 } else if (record.task_type === 'Quiz') {
                     studentStats[record.std_id].quiz += s;
                 } else if (record.task_type === 'Bonus') {
@@ -143,14 +145,14 @@ async function loadDashboard() {
         // สร้างตารางรายบุคคล
         // ==========================================
         if (totalStudents === 0) {
-            tbody.innerHTML = `<tr><td colspan="12" class="text-center p-8 text-slate-500">ไม่พบข้อมูลนักเรียน</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="13" class="text-center p-8 text-slate-500">ไม่พบข้อมูลนักเรียน</td></tr>`;
         } else {
             studentsData.forEach(student => {
                 const stat = studentStats[student.std_id];
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 transition-colors";
                 
-                // สังเกตตรงนี้: เราบังคับให้สร้าง 12 คอลัมน์ ตรงกับ HTML พอดีเป๊ะ
+                // ⭐️ เพิ่มคอลัมน์ Classroom (สีฟ้า) ลงไปในตาราง
                 tr.innerHTML = `
                     <td class="p-3 text-center font-bold text-slate-500">${stat.room}</td>
                     <td class="p-3 text-center font-bold text-slate-700">${stat.room_num || '-'}</td>
@@ -163,6 +165,7 @@ async function loadDashboard() {
                     <td class="p-3 text-center font-semibold ${stat.late > 0 ? 'text-orange-600' : 'text-slate-300'} bg-orange-50/40">${stat.late}</td>
                     
                     <td class="p-3 text-center font-medium text-indigo-600 bg-indigo-50/40">${stat.hw > 0 ? stat.hw : '-'}</td>
+                    <td class="p-3 text-center font-medium text-sky-600 bg-sky-50/40">${stat.classroom > 0 ? stat.classroom : '-'}</td>
                     <td class="p-3 text-center font-medium text-purple-600 bg-purple-50/40">${stat.quiz > 0 ? stat.quiz : '-'}</td>
                     <td class="p-3 text-center font-medium text-pink-600 bg-pink-50/40">${stat.bonus > 0 ? stat.bonus : '-'}</td>
                     <td class="p-3 text-center font-bold text-blue-600 bg-blue-100/50">${stat.totalScore.toFixed(1)}</td>
