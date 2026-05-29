@@ -76,7 +76,7 @@ function actionSelectAll() {
 }
 
 // ==========================================
-// 1. ฟังก์ชันดึงข้อมูลแบบปลอดภัย 100% (กันโค้ดพัง)
+// 1. ฟังก์ชันโหลดรายชื่อแบบแม่นยำ 100%
 // ==========================================
 async function loadStudents() {
     if (!initSupabase()) return;
@@ -90,7 +90,7 @@ async function loadStudents() {
         return;
     }
 
-    // ⭐️ ไม้ตายที่ 1: สกัดเอาเฉพาะ "ตัวเลข" ออกมา เพื่อกันคำว่า "ห้อง" หรือ "คาบ" ไปทำให้ฐานข้อมูล Error
+    // กรองเอาเฉพาะตัวเลขห้อง
     const roomVal = roomEl.value.replace(/[^0-9]/g, '');
     const periodVal = periodEl.value.replace(/[^0-9]/g, '');
     const date = dateEl.value;
@@ -125,7 +125,7 @@ async function loadStudents() {
     if (document.getElementById('tableContainer')) document.getElementById('tableContainer').style.display = 'block';
     
     try {
-        // ⭐️ ไม้ตายที่ 2: ดึงข้อมูลมาทั้งหมดก่อน แล้วกรองด้วย JS เพื่อความแม่นยำ 100%
+        // ดึงเด็กทุกคนมาก่อน แล้วคัดแยกด้วย JS เพื่อแก้ปัญหาการค้นหาของ Supabase
         const { data: allStudents, error: studentsError } = await supabaseClient
             .from('students_m33201_1_2569') 
             .select('*')
@@ -133,7 +133,6 @@ async function loadStudents() {
             
         if (studentsError) throw studentsError;
 
-        // กรองเอาเฉพาะคนที่อยู่ห้องที่เลือก
         currentStudents = allStudents.filter(s => {
             if (!s.room) return false;
             return s.room.toString().replace(/[^0-9]/g, '') === roomVal;
@@ -146,7 +145,7 @@ async function loadStudents() {
             return;
         }
 
-        // ดึงการลา
+        // ดึงข้อมูลการลา
         const { data: allLeaves } = await supabaseClient
             .from('m33201_1_2569_student_leaves')
             .select('std_id, leave_type, room_number')
@@ -158,7 +157,6 @@ async function loadStudents() {
                      .forEach(leave => leaveMap[leave.std_id] = leave.leave_type);
         }
 
-        // ดึงประวัติเก่ามาโชว์ 
         let existingDataMap = {};
         let isEditing = false;
 
@@ -176,15 +174,15 @@ async function loadStudents() {
                 }
             }
         } else {
+            // ⭐️ โหมดคะแนน: ไม่สนใจ record_date ดูแค่ห้อง ประเภทงาน และชื่อหัวข้อ
             const { data: allScores } = await supabaseClient
                 .from('students_m33201_1_2569_records')
                 .select('*')
-                .eq('record_date', date)
                 .eq('task_type', taskType)
                 .eq('topic', topic);
             
             if (allScores) {
-                const filteredScores = allScores.filter(r => r.room_number.toString().replace(/[^0-9]/g, '') === roomVal && r.period_number.toString() === periodVal);
+                const filteredScores = allScores.filter(r => r.room_number.toString().replace(/[^0-9]/g, '') === roomVal);
                 if (filteredScores.length > 0) {
                     isEditing = true;
                     filteredScores.forEach(r => existingDataMap[r.std_id] = r);
@@ -249,7 +247,7 @@ async function loadStudents() {
 }
 
 // ==========================================
-// 2. ฟังก์ชันบันทึกข้อมูลแบบปลอดภัย
+// 2. ฟังก์ชันบันทึกข้อมูล
 // ==========================================
 async function saveData() {
     if (!initSupabase()) return;
